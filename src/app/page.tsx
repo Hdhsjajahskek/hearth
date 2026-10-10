@@ -34,20 +34,26 @@ export default function InboxPage() {
   <h1 className="font-mono tracking-[0.3em] text-sm text-[#7A6F65]">
     HEARTH
   </h1>
-  <div className="flex items-center gap-4">
-    <a
-      href="/search"
-      className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
-    >
-      search
-    </a>
-    <button
-      onClick={signOut}
-      className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
-    >
-      sign out
-    </button>
-  </div>
+<div className="flex items-center gap-4">
+  <a
+    href="/search"
+    className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
+  >
+    search
+  </a>
+  <a
+    href="/export"
+    className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
+  >
+    export
+  </a>
+  <button
+    onClick={signOut}
+    className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
+  >
+    sign out
+  </button>
+</div>
 </header>
 
         <CaptureBox onCaptured={refresh} />
