@@ -12,8 +12,8 @@ export function CaptureBox({ onCaptured }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const submittingRef = useRef(false)
 
-  // Auto-grow the textarea as you type
   useEffect(() => {
     const el = textareaRef.current
     if (!el) return
@@ -21,26 +21,33 @@ export function CaptureBox({ onCaptured }: Props) {
     el.style.height = Math.min(el.scrollHeight, 240) + 'px'
   }, [value])
 
-  // Autofocus on mount
   useEffect(() => {
     textareaRef.current?.focus()
   }, [])
 
   async function submit() {
-    if (!value.trim() || busy) return
+    // Hard lock — even if submit() is called twice in the same tick,
+    // only one insert goes through.
+    if (submittingRef.current) return
+    if (!value.trim()) return
+
+    submittingRef.current = true
     setBusy(true)
     setError(null)
 
     const result = await captureNote(value)
 
-    setBusy(false)
-
     if (!result.ok) {
       setError(result.error)
+      setBusy(false)
+      submittingRef.current = false
       return
     }
 
+    // Clear the input *first*, then tell the parent to refresh.
     setValue('')
+    setBusy(false)
+    submittingRef.current = false
     onCaptured()
     textareaRef.current?.focus()
   }

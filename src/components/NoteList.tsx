@@ -23,9 +23,7 @@ function timeAgo(iso: string): string {
 
 export function NoteList({ notes, loading }: Props) {
   if (loading) {
-    return (
-      <p className="text-sm text-[#7A6F65] font-mono">loading…</p>
-    )
+    return <p className="text-sm text-[#7A6F65] font-mono">loading…</p>
   }
 
   if (notes.length === 0) {
@@ -41,26 +39,31 @@ export function NoteList({ notes, loading }: Props) {
 
   return (
     <ul className="space-y-1">
-      {notes.map((note) => (
-        <li
-          key={note.id}
-          className="border border-[#1F1813] rounded-lg bg-[#14100C] hover:bg-[#1A140F] transition-colors px-4 py-3"
-        >
-          {note.data.title && (
-            <p className="text-[#F5EFE7] text-sm font-medium mb-1 truncate">
-              {note.data.title}
+      {notes.map((note) => {
+        const content = note.data.content
+        const title = note.data.title
+        const isMultiline = content.includes('\n')
+        const showTitle = isMultiline && title && title !== content
+
+        return (
+          <li
+            key={note.id}
+            className="border border-[#1F1813] rounded-lg bg-[#14100C] hover:bg-[#1A140F] transition-colors px-4 py-3"
+          >
+            {showTitle && (
+              <p className="text-[#F5EFE7] text-sm font-medium mb-1 truncate">
+                {title}
+              </p>
+            )}
+            <p className="text-[#F5EFE7] text-sm whitespace-pre-wrap break-words leading-relaxed">
+              {content.length > 400 ? content.slice(0, 400) + '…' : content}
             </p>
-          )}
-          <p className="text-[#F5EFE7] text-sm whitespace-pre-wrap break-words leading-relaxed">
-            {note.data.content.length > 400
-              ? note.data.content.slice(0, 400) + '…'
-              : note.data.content}
-          </p>
-          <p className="text-xs text-[#7A6F65] mt-2 font-mono">
-            {timeAgo(note.created_at)}
-          </p>
-        </li>
-      ))}
+            <p className="text-xs text-[#7A6F65] mt-2 font-mono">
+              {timeAgo(note.created_at)}
+            </p>
+          </li>
+        )
+      })}
     </ul>
   )
 }
