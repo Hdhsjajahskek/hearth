@@ -2,9 +2,15 @@
 // HEARTH — Core Types
 // ============================================================
 
-export type NodeType = 'note'
+export type NodeType = 'note' | 'book'
 
-export type EventType = 'note_created' | 'note_edited'
+export type EdgeRelation = 'about'
+
+export type EventType =
+  | 'note_created'
+  | 'note_edited'
+  | 'book_created'
+  | 'book_progress'
 
 export interface NoteData {
   title: string | null
@@ -12,7 +18,16 @@ export interface NoteData {
   schema_version: 1
 }
 
-export type NodeData = NoteData
+export interface BookData {
+  title: string
+  author: string | null
+  file_path: string
+  current_page: number
+  total_pages: number | null
+  schema_version: 1
+}
+
+export type NodeData = NoteData | BookData
 
 export interface HearthNode<T extends NodeData = NodeData> {
   id: string
@@ -28,7 +43,7 @@ export interface HearthEdge {
   user_id: string
   from_node_id: string
   to_node_id: string
-  relation: string
+  relation: EdgeRelation
   created_at: string
 }
 
@@ -39,4 +54,14 @@ export interface HearthEvent {
   subject_node_id: string | null
   timestamp: string
   data: Record<string, unknown>
+}
+
+// --- Type guards -------------------------------------------------
+
+export function isNote(node: HearthNode): node is HearthNode<NoteData> {
+  return node.type === 'note'
+}
+
+export function isBook(node: HearthNode): node is HearthNode<BookData> {
+  return node.type === 'book'
 }
