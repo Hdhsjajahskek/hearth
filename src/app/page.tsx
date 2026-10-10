@@ -31,16 +31,24 @@ export default function InboxPage() {
     <main className="min-h-screen bg-[#0A0806] text-[#F5EFE7]">
       <div className="max-w-2xl mx-auto px-6 py-10">
         <header className="flex items-center justify-between mb-8">
-          <h1 className="font-mono tracking-[0.3em] text-sm text-[#7A6F65]">
-            HEARTH
-          </h1>
-          <button
-            onClick={signOut}
-            className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
-          >
-            sign out
-          </button>
-        </header>
+  <h1 className="font-mono tracking-[0.3em] text-sm text-[#7A6F65]">
+    HEARTH
+  </h1>
+  <div className="flex items-center gap-4">
+    <a
+      href="/search"
+      className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
+    >
+      search
+    </a>
+    <button
+      onClick={signOut}
+      className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
+    >
+      sign out
+    </button>
+  </div>
+</header>
 
         <CaptureBox onCaptured={refresh} />
 
