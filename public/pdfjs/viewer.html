@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>Hearth Reader</title>
+  <base href="./" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #0A0806;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    #viewerContainer {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: auto;
+      background: #0A0806;
+      -webkit-overflow-scrolling: touch;
+    }
+    #viewer {
+      padding: 24px 24px 48px 24px;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .page-slot {
+      margin: 12px 0;
+      background: #F5EFE7;
+      border-radius: 2px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+    canvas {
+      display: block;
+      background: #F5EFE7;
+      border-radius: 2px;
+    }
+    .loading {
+      color: #7A6F65;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .error {
+      color: #8B4A2A;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewerContainer">
+    <div id="viewer">
+      <p class="loading">waiting for file…</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as pdfjsLib from './pdf.mjs'
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.min.mjs'
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let _pdf = null
+    let _container = null
+    let _viewer = null
+    let _baseScale = 1
+    let _zoomMultiplier = 1
+    let _currentPage = 1
+    let _baseViewport = null
+    const _pageCache = new Map()
+    let _observer = null
+
+    // ============================================================
+    // MESSAGE HANDLER (parent → viewer)
+    // ============================================================
+    window.addEventListener('message', (ev) => {
+      const data = ev.data
+      if (!data || typeof data !== 'object') return
+      if (typeof data.type !== 'string' || !data.type.startsWith('hearth:')) return
+
+      if (data.type === 'hearth:fileUrl') {
+        const url = data.url
+        if (typeof url !== 'string' || !url) return
+        boot(url).catch((err) => {
+          console.error('[viewer] boot failed:', err)
+          document.getElementById('viewer').innerHTML =
+            '<p class="error">Failed to open the PDF.</p>'
+        })
+        return
+      }
+
+      if (data.type === 'hearth:goto') {
+        const n = parseInt(data.page)
+        if (!isNaN(n)) gotoPage(n)
+        return
+      }
+
+      if (data.type === 'hearth:zoom') {
+        const z = parseFloat(data.zoom)
+        if (!isNaN(z)) setZoom(z)
+        return
+      }
+
+      if (data.type === 'hearth:fitWidth') {
+        fitWidth()
+        return
+      }
+    })
+
+    // ============================================================
+    // BOOT
+    // ============================================================
+    async function boot(url) {
+      _container = document.getElementById('viewerContainer')
+      _viewer = document.getElementById('viewer')
+      _viewer.innerHTML = ''
+
+      _pdf = await pdfjsLib.getDocument({ url }).promise
+
+      window.parent.postMessage(
+        { type: 'hearth:pagesloaded', total: _pdf.numPages },
+        '*'
+      )
+
+      const firstPage = await _pdf.getPage(1)
+      _baseViewport = firstPage.getViewport({ scale: 1 })
+      _baseScale = computeBaseScale()
+
+      createPlaceholders()
+      attachGestures()
+      attachScrollTracking()
+      attachResizeHandler()
+
+      renderPage(1)
+      notifyZoom()
+    }
+
+    function computeBaseScale() {
+      const containerWidth = _container.clientWidth - 48
+      return Math.min(containerWidth / _baseViewport.width, 2)
+    }
+
+    function createPlaceholders() {
+      _observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const n = Number(entry.target.dataset.page)
+              if (n) renderPage(n)
+            }
+          })
+        },
+        { root: _container, rootMargin: '800px' }
+      )
+
+      for (let i = 1; i <= _pdf.numPages; i++) {
+        const slot = document.createElement('div')
+        slot.className = 'page-slot'
+        slot.dataset.page = String(i)
+        const s = _baseScale * _zoomMultiplier
+        slot.style.width = _baseViewport.width * s + 'px'
+        slot.style.height = _baseViewport.height * s + 'px'
+        _viewer.appendChild(slot)
+        _observer.observe(slot)
+      }
+    }
+
+    async function renderPage(num) {
+      if (_pageCache.has(num)) return
+      const slot = _viewer.querySelector(`div[data-page="${num}"]`)
+      if (!slot) return
+
+      const page = await _pdf.getPage(num)
+      const scale = _baseScale * _zoomMultiplier
+      const viewport = page.getViewport({ scale })
+
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = viewport.width * dpr
+      canvas.height = viewport.height * dpr
+      canvas.style.width = viewport.width + 'px'
+      canvas.style.height = viewport.height + 'px'
+
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+        transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
+      }).promise
+
+      slot.innerHTML = ''
+      slot.appendChild(canvas)
+      _pageCache.set(num, canvas)
+    }
+
+    function clearRenderedPages() {
+      _pageCache.clear()
+      _viewer.querySelectorAll('canvas').forEach((c) => c.remove())
+    }
+
+    function updateSlotSizes() {
+      const s = _baseScale * _zoomMultiplier
+      _viewer.querySelectorAll('div[data-page]').forEach((slot) => {
+        slot.style.width = _baseViewport.width * s + 'px'
+        slot.style.height = _baseViewport.height * s + 'px'
+      })
+    }
+
+    // ============================================================
+    // PUBLIC ACTIONS
+    // ============================================================
+    function gotoPage(n) {
+      if (isNaN(n) || n < 1 || n > _pdf.numPages) return
+      const slot = _viewer.querySelector(`div[data-page="${n}"]`)
+      if (!slot) return
+      slot.scrollIntoView({ behavior: 'auto', block: 'start' })
+      renderPage(n)
+      _currentPage = n
+    }
+
+    function setZoom(multiplier) {
+      _zoomMultiplier = Math.max(0.5, Math.min(3, multiplier))
+      clearRenderedPages()
+      updateSlotSizes()
+      renderPage(_currentPage)
+      // Re-render visible neighbors
+      for (let i = _currentPage - 1; i <= _currentPage + 1; i++) {
+        if (i >= 1 && i <= _pdf.numPages) renderPage(i)
+      }
+      notifyZoom()
+    }
+
+    function fitWidth() {
+      _zoomMultiplier = 1
+      _baseScale = computeBaseScale()
+      clearRenderedPages()
+      updateSlotSizes()
+      renderPage(_currentPage)
+      for (let i = _currentPage - 1; i <= _currentPage + 1; i++) {
+        if (i >= 1 && i <= _pdf.numPages) renderPage(i)
+      }
+      notifyZoom()
+    }
+
+    function notifyZoom() {
+      window.parent.postMessage(
+        {
+          type: 'hearth:zoomChanged',
+          percent: Math.round(_zoomMultiplier * 100),
+        },
+        '*'
+      )
+    }
+
+    // ============================================================
+    // GESTURES: Ctrl+Scroll, Pinch, Swipe
+    // ============================================================
+    function attachGestures() {
+      // --- Ctrl+Scroll (desktop) ---
+      _container.addEventListener(
+        'wheel',
+        (e) => {
+          if (!e.ctrlKey && !e.metaKey) return
+          e.preventDefault()
+          const delta = e.deltaY > 0 ? -0.1 : 0.1
+          setZoom(_zoomMultiplier + delta)
+        },
+        { passive: false }
+      )
+
+      // --- Touch: pinch-zoom + swipe ---
+      let initialPinchDist = 0
+      let initialPinchZoom = 1
+      let touchStartX = 0
+      let touchStartY = 0
+      let touchStartTime = 0
+      let isPinching = false
+
+      _container.addEventListener(
+        'touchstart',
+        (e) => {
+          if (e.touches.length === 2) {
+            isPinching = true
+            initialPinchDist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            )
+            initialPinchZoom = _zoomMultiplier
+          } else if (e.touches.length === 1) {
+            isPinching = false
+            touchStartX = e.touches[0].clientX
+            touchStartY = e.touches[0].clientY
+            touchStartTime = Date.now()
+          }
+        },
+        { passive: true }
+      )
+
+      _container.addEventListener(
+        'touchmove',
+        (e) => {
+          if (e.touches.length === 2 && isPinching) {
+            e.preventDefault()
+            const dist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            )
+            const ratio = dist / initialPinchDist
+            setZoom(initialPinchZoom * ratio)
+          }
+        },
+        { passive: false }
+      )
+
+      _container.addEventListener(
+        'touchend',
+        (e) => {
+          if (isPinching) {
+            isPinching = false
+            return
+          }
+          if (e.changedTouches.length !== 1) return
+
+          const dx = e.changedTouches[0].clientX - touchStartX
+          const dy = e.changedTouches[0].clientY - touchStartY
+          const dt = Date.now() - touchStartTime
+
+          // Horizontal swipe threshold
+          if (Math.abs(dx) > 60 && Math.abs(dy) < 60 && dt < 500) {
+            if (dx < 0) {
+              // swipe left → next
+              if (_currentPage < _pdf.numPages) {
+                _currentPage++
+                gotoPage(_currentPage)
+                window.parent.postMessage(
+                  { type: 'hearth:pagechanging', page: _currentPage },
+                  '*'
+                )
+              }
+            } else {
+              // swipe right → prev
+              if (_currentPage > 1) {
+                _currentPage--
+                gotoPage(_currentPage)
+                window.parent.postMessage(
+                  { type: 'hearth:pagechanging', page: _currentPage },
+                  '*'
+                )
+              }
+            }
+          }
+        },
+        { passive: true }
+      )
+    }
+
+    // ============================================================
+    // SCROLL TRACKING (updates current page)
+    // ============================================================
+    function attachScrollTracking() {
+      let timeout
+      _container.addEventListener('scroll', () => {
+        clearTimeout(timeout)
+        timeout = setTimeout(() => {
+          const rect = _container.getBoundingClientRect()
+          const mid = rect.top + rect.height / 2
+          let closest = _currentPage
+          let closestDist = Infinity
+          _viewer.querySelectorAll('div[data-page]').forEach((slot) => {
+            const r = slot.getBoundingClientRect()
+            const m = r.top + r.height / 2
+            const d = Math.abs(m - mid)
+            if (d < closestDist) {
+              closestDist = d
+              closest = Number(slot.dataset.page)
+            }
+          })
+          if (closest !== _currentPage) {
+            _currentPage = closest
+            window.parent.postMessage(
+              { type: 'hearth:pagechanging', page: _currentPage },
+              '*'
+            )
+          }
+        }, 120)
+      })
+    }
+
+    // ============================================================
+    // RESIZE
+    // ============================================================
+    function attachResizeHandler() {
+      let t
+      window.addEventListener('resize', () => {
+        clearTimeout(t)
+        t = setTimeout(() => {
+          _baseScale = computeBaseScale()
+          clearRenderedPages()
+          updateSlotSizes()
+          renderPage(_currentPage)
+        }, 200)
+      })
+    }
+  </script>
+</body>
+</html>

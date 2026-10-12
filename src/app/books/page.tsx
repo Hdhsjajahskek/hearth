@@ -28,8 +28,9 @@ export default function BooksPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.type !== 'application/pdf') {
-      setError('Only PDF files are supported right now.')
+    const nameLower = file.name.toLowerCase()
+    if (!nameLower.endsWith('.pdf') && !nameLower.endsWith('.epub')) {
+      setError('Only PDF and EPUB files are supported.')
       return
     }
 
@@ -72,7 +73,7 @@ export default function BooksPage() {
             <input
               ref={fileRef}
               type="file"
-              accept="application/pdf,.pdf"
+              accept="application/pdf,application/epub+zip,.pdf,.epub"
               onChange={onFilePicked}
               className="hidden"
               disabled={uploading}
@@ -82,7 +83,9 @@ export default function BooksPage() {
               className="cursor-pointer block w-full text-center border border-dashed border-[#1F1813] hover:border-[#8B4A2A] rounded-lg py-8 transition-colors"
             >
               <span className="text-sm text-[#7A6F65]">
-                {uploading ? 'uploading…' : 'Drop a PDF here, or click to choose'}
+                {uploading
+                  ? 'uploading…'
+                  : 'Drop a PDF or EPUB here, or click to choose'}
               </span>
             </span>
           </label>
@@ -99,7 +102,7 @@ export default function BooksPage() {
           <div className="text-center py-12">
             <p className="text-sm text-[#7A6F65]">No books yet.</p>
             <p className="text-xs text-[#7A6F65] mt-1">
-              Upload a PDF to start your shelf.
+              Upload a PDF or EPUB to start your shelf.
             </p>
           </div>
         )}
@@ -108,11 +111,15 @@ export default function BooksPage() {
           <ul className="space-y-2">
             {books.map((book) => {
               const progress =
-                book.data.total_pages && book.data.total_pages > 0
+                book.data.format === 'epub'
+                  ? null
+                  : book.data.total_pages && book.data.total_pages > 0
                   ? Math.round(
                       (book.data.current_page / book.data.total_pages) * 100
                     )
                   : null
+
+              const formatLabel = book.data.format === 'epub' ? 'EPUB' : 'PDF'
 
               return (
                 <li key={book.id}>
@@ -131,11 +138,14 @@ export default function BooksPage() {
                           </p>
                         )}
                       </div>
-                      <p className="text-xs text-[#7A6F65] font-mono whitespace-nowrap">
-                        {progress !== null
-                          ? `${progress}%`
-                          : `p. ${book.data.current_page}`}
-                      </p>
+                      <div className="flex items-center gap-3 whitespace-nowrap">
+                        <span className="text-[10px] text-[#7A6F65] font-mono uppercase tracking-wider">
+                          {formatLabel}
+                        </span>
+                        <span className="text-xs text-[#7A6F65] font-mono">
+                          {progress !== null ? `${progress}%` : '·'}
+                        </span>
+                      </div>
                     </div>
                   </Link>
                 </li>

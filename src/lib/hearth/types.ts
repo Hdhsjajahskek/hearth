@@ -22,9 +22,11 @@ export interface BookData {
   title: string
   author: string | null
   file_path: string
-  current_page: number
-  total_pages: number | null
-  schema_version: 1
+  format: 'pdf' | 'epub'        // NEW
+  current_page: number          // for PDFs
+  total_pages: number | null    // for PDFs
+  current_location: string | null  // for EPUBs (CFI string)
+  schema_version: 1 | 2         // bump to 2
 }
 
 export type NodeData = NoteData | BookData
