@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+  />
   <title>Hearth Reader</title>
   <base href="./" />
   <style>
@@ -14,24 +17,27 @@
       overflow: hidden;
       font-family: system-ui, -apple-system, sans-serif;
       -webkit-text-size-adjust: 100%;
+      touch-action: pan-y; /* allow vertical scroll, block browser pinch */
     }
     #viewerContainer {
       position: absolute;
       inset: 0;
       overflow-y: auto;
-      overflow-x: auto;
+      overflow-x: hidden;
       background: #0A0806;
       -webkit-overflow-scrolling: touch;
+      /* Let browser handle vertical scroll only */
+      touch-action: pan-y;
     }
     #viewer {
-      padding: 24px 24px 48px 24px;
+      padding: 24px 12px 48px 12px;
       min-height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
     .page-slot {
-      margin: 12px 0;
+      margin: 8px 0;
       background: #F5EFE7;
       border-radius: 2px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
@@ -83,7 +89,7 @@
     let _observer = null
 
     // ============================================================
-    // MESSAGE HANDLER (parent → viewer)
+    // MESSAGE HANDLER
     // ============================================================
     window.addEventListener('message', (ev) => {
       const data = ev.data
@@ -143,16 +149,21 @@
       attachScrollTracking()
       attachResizeHandler()
 
+      // Render the first 3 pages immediately — no blank screen
       renderPage(1)
+      renderPage(2)
+      renderPage(3)
+
       notifyZoom()
     }
 
     function computeBaseScale() {
-      const containerWidth = _container.clientWidth - 48
+      const containerWidth = _container.clientWidth - 24
       return Math.min(containerWidth / _baseViewport.width, 2)
     }
 
     function createPlaceholders() {
+      // Bigger rootMargin = renders pages before they scroll into view
       _observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
@@ -162,7 +173,7 @@
             }
           })
         },
-        { root: _container, rootMargin: '800px' }
+        { root: _container, rootMargin: '1200px 0px' }
       )
 
       for (let i = 1; i <= _pdf.numPages; i++) {
@@ -235,7 +246,6 @@
       clearRenderedPages()
       updateSlotSizes()
       renderPage(_currentPage)
-      // Re-render visible neighbors
       for (let i = _currentPage - 1; i <= _currentPage + 1; i++) {
         if (i >= 1 && i <= _pdf.numPages) renderPage(i)
       }
@@ -248,9 +258,6 @@
       clearRenderedPages()
       updateSlotSizes()
       renderPage(_currentPage)
-      for (let i = _currentPage - 1; i <= _currentPage + 1; i++) {
-        if (i >= 1 && i <= _pdf.numPages) renderPage(i)
-      }
       notifyZoom()
     }
 
@@ -265,10 +272,10 @@
     }
 
     // ============================================================
-    // GESTURES: Ctrl+Scroll, Pinch, Swipe
+    // GESTURES — Swipe only. Pinch handled via CSS touch-action.
     // ============================================================
     function attachGestures() {
-      // --- Ctrl+Scroll (desktop) ---
+      // Ctrl+Scroll on desktop — kept for mouse users
       _container.addEventListener(
         'wheel',
         (e) => {
@@ -280,26 +287,17 @@
         { passive: false }
       )
 
-      // --- Touch: pinch-zoom + swipe ---
-      let initialPinchDist = 0
-      let initialPinchZoom = 1
+      // Swipe left/right for prev/next page — mobile only
       let touchStartX = 0
       let touchStartY = 0
       let touchStartTime = 0
-      let isPinching = false
+      let isMultiTouch = false
 
       _container.addEventListener(
         'touchstart',
         (e) => {
-          if (e.touches.length === 2) {
-            isPinching = true
-            initialPinchDist = Math.hypot(
-              e.touches[0].clientX - e.touches[1].clientX,
-              e.touches[0].clientY - e.touches[1].clientY
-            )
-            initialPinchZoom = _zoomMultiplier
-          } else if (e.touches.length === 1) {
-            isPinching = false
+          isMultiTouch = e.touches.length > 1
+          if (e.touches.length === 1) {
             touchStartX = e.touches[0].clientX
             touchStartY = e.touches[0].clientY
             touchStartTime = Date.now()
@@ -309,26 +307,10 @@
       )
 
       _container.addEventListener(
-        'touchmove',
-        (e) => {
-          if (e.touches.length === 2 && isPinching) {
-            e.preventDefault()
-            const dist = Math.hypot(
-              e.touches[0].clientX - e.touches[1].clientX,
-              e.touches[0].clientY - e.touches[1].clientY
-            )
-            const ratio = dist / initialPinchDist
-            setZoom(initialPinchZoom * ratio)
-          }
-        },
-        { passive: false }
-      )
-
-      _container.addEventListener(
         'touchend',
         (e) => {
-          if (isPinching) {
-            isPinching = false
+          if (isMultiTouch) {
+            isMultiTouch = false
             return
           }
           if (e.changedTouches.length !== 1) return
@@ -337,28 +319,21 @@
           const dy = e.changedTouches[0].clientY - touchStartY
           const dt = Date.now() - touchStartTime
 
-          // Horizontal swipe threshold
-          if (Math.abs(dx) > 60 && Math.abs(dy) < 60 && dt < 500) {
-            if (dx < 0) {
-              // swipe left → next
-              if (_currentPage < _pdf.numPages) {
-                _currentPage++
-                gotoPage(_currentPage)
-                window.parent.postMessage(
-                  { type: 'hearth:pagechanging', page: _currentPage },
-                  '*'
-                )
-              }
-            } else {
-              // swipe right → prev
-              if (_currentPage > 1) {
-                _currentPage--
-                gotoPage(_currentPage)
-                window.parent.postMessage(
-                  { type: 'hearth:pagechanging', page: _currentPage },
-                  '*'
-                )
-              }
+          if (Math.abs(dx) > 80 && Math.abs(dy) < 60 && dt < 400) {
+            if (dx < 0 && _currentPage < _pdf.numPages) {
+              _currentPage++
+              gotoPage(_currentPage)
+              window.parent.postMessage(
+                { type: 'hearth:pagechanging', page: _currentPage },
+                '*'
+              )
+            } else if (dx > 0 && _currentPage > 1) {
+              _currentPage--
+              gotoPage(_currentPage)
+              window.parent.postMessage(
+                { type: 'hearth:pagechanging', page: _currentPage },
+                '*'
+              )
             }
           }
         },
@@ -367,7 +342,7 @@
     }
 
     // ============================================================
-    // SCROLL TRACKING (updates current page)
+    // SCROLL TRACKING
     // ============================================================
     function attachScrollTracking() {
       let timeout
