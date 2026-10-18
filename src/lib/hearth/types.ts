@@ -2,7 +2,7 @@
 // HEARTH — Core Types
 // ============================================================
 
-export type NodeType = 'note' | 'book' | 'lead' | 'contact' | 'event'
+export type NodeType = 'note' | 'book' | 'lead' | 'contact' | 'event' | 'outreach'
 
 export type EdgeRelation = 'about'
 
@@ -14,6 +14,7 @@ export type EventType =
   | 'lead_created'
   | 'contact_created'
   | 'event_created'
+  | 'outreach_logged'
 
 export interface NoteData {
   title: string | null
@@ -57,7 +58,21 @@ export interface EventData {
   schema_version: 1
 }
 
-export type NodeData = NoteData | BookData | LeadData | ContactData | EventData
+export interface OutreachData {
+  reached: number
+  callbacks: number
+  demos: number
+  note: string | null
+  schema_version: 1
+}
+
+export type NodeData = 
+  | NoteData 
+  | BookData 
+  | LeadData 
+  | ContactData 
+  | EventData 
+  | OutreachData
 
 export interface HearthNode<T extends NodeData = NodeData> {
   id: string
@@ -86,7 +101,9 @@ export interface HearthEvent {
   data: Record<string, unknown>
 }
 
-// --- Type guards -------------------------------------------------
+// ============================================================
+// TYPE GUARDS
+// ============================================================
 
 export function isNote(node: HearthNode): node is HearthNode<NoteData> {
   return node.type === 'note'
@@ -106,4 +123,8 @@ export function isContact(node: HearthNode): node is HearthNode<ContactData> {
 
 export function isEvent(node: HearthNode): node is HearthNode<EventData> {
   return node.type === 'event'
+}
+
+export function isOutreach(node: HearthNode): node is HearthNode<OutreachData> {
+  return node.type === 'outreach'
 }

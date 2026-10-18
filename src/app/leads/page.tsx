@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { listLeads, updateLeadStatus, deleteLead } from '@/lib/hearth/leads'
+import { logOutreach, getOutreachStats, OutreachStats } from '@/lib/hearth/outreach'
 import { getDayNumber } from '@/lib/hearth/read'
 import type { LeadData, HearthNode } from '@/lib/hearth/types'
 
@@ -19,16 +20,27 @@ export default function LeadsPage() {
   const [loading, setLoading] = useState(true)
   const [grouped, setGrouped] = useState<Record<number, HearthNode<LeadData>[]>>({})
 
+  // Outreach State
+  const [stats, setStats] = useState<{ today: OutreachStats, week: OutreachStats, month: OutreachStats } | null>(null)
+  const [showLogForm, setShowLogForm] = useState(false)
+  const [logReached, setLogReached] = useState('')
+  const [logCallbacks, setLogCallbacks] = useState('')
+  const [logDemos, setLogDemos] = useState('')
+  const [logging, setLogging] = useState(false)
+
   const refresh = useCallback(async () => {
-    const data = await listLeads()
+    const [data, statsData] = await Promise.all([listLeads(), getOutreachStats()])
+    
     const groups: Record<number, HearthNode<LeadData>[]> = {}
     for (const lead of data) {
       const dayNum = await getDayNumber(lead.created_at)
       if (!groups[dayNum]) groups[dayNum] = []
       groups[dayNum].push(lead)
     }
+    
     setGrouped(groups)
     setLeads(data)
+    setStats(statsData)
     setLoading(false)
   }, [])
 
@@ -52,16 +64,93 @@ export default function LeadsPage() {
     await deleteLead(leadId)
   }
 
+  async function submitOutreach() {
+    setLogging(true)
+    const r = parseInt(logReached) || 0
+    const c = parseInt(logCallbacks) || 0
+    const d = parseInt(logDemos) || 0
+    
+    const res = await logOutreach(r, c, d, null)
+    setLogging(false)
+    
+    if (res.ok) {
+      setShowLogForm(false)
+      setLogReached('')
+      setLogCallbacks('')
+      setLogDemos('')
+      refresh()
+    } else {
+      alert(res.error)
+    }
+  }
+
   const sortedDays = Object.keys(grouped).map(Number).sort((a, b) => b - a)
 
+  // Helper to render percentages
+  const pct = (num: number, total: number) => total === 0 ? '0%' : Math.round((num / total) * 100) + '%'
+
   return (
-    <main className="min-h-screen bg-[#0A0806] text-[#F5EFE7]">
+    <main className="min-h-screen bg-[#0A0806] text-[#F5EFE7] pb-24">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <header className="flex items-center justify-between mb-8">
           <Link href="/" className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] font-mono">← inbox</Link>
           <h1 className="font-mono tracking-[0.3em] text-sm text-[#7A6F65]">LEADS</h1>
           <div className="w-12" />
         </header>
+
+        {/* OUTREACH TRACKER */}
+        {stats && (
+          <div className="mb-10 border border-[#1F1813] rounded-xl bg-[#14100C] p-5 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xs text-[#FF6B1A] font-mono uppercase tracking-wider">Outreach Stats</h2>
+              <button 
+                onClick={() => setShowLogForm(!showLogForm)}
+                className="text-[10px] bg-[#1F1813] hover:bg-[#8B4A2A] text-[#F5EFE7] font-mono px-3 py-1.5 rounded transition-colors"
+              >
+                {showLogForm ? 'Cancel' : '+ Log Today'}
+              </button>
+            </div>
+
+            {showLogForm ? (
+              <div className="flex items-center gap-3">
+                <input type="number" placeholder="Reached" value={logReached} onChange={e => setLogReached(e.target.value)} className="w-full bg-[#0A0806] text-sm text-center border border-[#1F1813] rounded p-2 outline-none focus:border-[#FF6B1A]" />
+                <input type="number" placeholder="Callbacks" value={logCallbacks} onChange={e => setLogCallbacks(e.target.value)} className="w-full bg-[#0A0806] text-sm text-center border border-[#1F1813] rounded p-2 outline-none focus:border-[#FF6B1A]" />
+                <input type="number" placeholder="Demos" value={logDemos} onChange={e => setLogDemos(e.target.value)} className="w-full bg-[#0A0806] text-sm text-center border border-[#1F1813] rounded p-2 outline-none focus:border-[#FF6B1A]" />
+                <button onClick={submitOutreach} disabled={logging} className="bg-[#FF6B1A] text-[#0A0806] font-bold px-4 py-2 rounded disabled:opacity-50">Save</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                {/* TODAY */}
+                <div className="border-r border-[#1F1813] pr-4 last:border-0">
+                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2">Today</p>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span className="text-[#7A6F65]">Reached</span> <span className="font-mono">{stats.today.reached}</span></div>
+                    <div className="flex justify-between"><span className="text-[#7A6F65]">Callback</span> <span className="font-mono text-[#FFB347]">{stats.today.callbacks} <span className="text-[10px]">({pct(stats.today.callbacks, stats.today.reached)})</span></span></div>
+                    <div className="flex justify-between"><span className="text-[#7A6F65]">Demo</span> <span className="font-mono text-[#00E5FF]">{stats.today.demos} <span className="text-[10px]">({pct(stats.today.demos, stats.today.reached)})</span></span></div>
+                  </div>
+                </div>
+                {/* WEEK */}
+                <div className="border-r border-[#1F1813] pr-4 last:border-0">
+                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2">This Week</p>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span className="text-[#7A6F65]">Reached</span> <span className="font-mono">{stats.week.reached}</span></div>
+                    <div className="flex justify-between"><span className="text-[#7A6F65]">Callback</span> <span className="font-mono text-[#FFB347]">{stats.week.callbacks} <span className="text-[10px]">({pct(stats.week.callbacks, stats.week.reached)})</span></span></div>
+                    <div className="flex justify-between"><span className="text-[#7A6F65]">Demo</span> <span className="font-mono text-[#00E5FF]">{stats.week.demos} <span className="text-[10px]">({pct(stats.week.demos, stats.week.reached)})</span></span></div>
+                  </div>
+                </div>
+                {/* MONTH */}
+                <div>
+                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2">This Month</p>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span className="text-[#7A6F65]">Reached</span> <span className="font-mono">{stats.month.reached}</span></div>
+                    <div className="flex justify-between"><span className="text-[#7A6F65]">Callback</span> <span className="font-mono text-[#FFB347]">{stats.month.callbacks} <span className="text-[10px]">({pct(stats.month.callbacks, stats.month.reached)})</span></span></div>
+                    <div className="flex justify-between"><span className="text-[#7A6F65]">Demo</span> <span className="font-mono text-[#00E5FF]">{stats.month.demos} <span className="text-[10px]">({pct(stats.month.demos, stats.month.reached)})</span></span></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {loading && <p className="text-sm text-[#7A6F65]">loading…</p>}
         {!loading && leads.length === 0 && <p className="text-sm text-[#7A6F65]">No leads yet. Go to Inbox to add one.</p>}
