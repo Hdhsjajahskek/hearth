@@ -38,7 +38,7 @@ export function CaptureBox({ onCaptured }: { onCaptured: () => void }) {
     const res = await createLead(leadName, leadPhone, leadAddress, leadNote, leadStatus)
     setBusy(false)
     if (!res.ok) return setError(res.error)
-    
+
     setLeadName('')
     setLeadPhone('')
     setLeadAddress('')
@@ -47,18 +47,35 @@ export function CaptureBox({ onCaptured }: { onCaptured: () => void }) {
     onCaptured()
   }
 
+  // Status color map for the glow effect
+  const statusColors: Record<LeadData['status'], string> = {
+    new: 'border-[#7A6F65] text-[#7A6F65] focus:ring-[#7A6F65]',
+    contacted: 'border-[#8B4A2A] text-[#FFB347] focus:ring-[#FFB347]',
+    interested: 'border-[#FF6B1A] text-[#FF6B1A] focus:ring-[#FF6B1A]',
+    client: 'border-[#00E5FF] text-[#00E5FF] focus:ring-[#00E5FF]',
+    dead: 'border-[#5a1c1c] text-[#ff4d4d] focus:ring-[#ff4d4d]',
+  }
+
   return (
     <div className="border border-[#1F1813] rounded-lg bg-[#14100C] p-4 shadow-lg">
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setMode('note')}
-          className={`text-xs font-mono px-3 py-1.5 rounded transition-colors ${mode === 'note' ? 'bg-[#FF6B1A] text-[#0A0806]' : 'text-[#7A6F65] hover:text-[#F5EFE7]'}`}
+          className={`text-xs font-mono px-3 py-1.5 rounded transition-colors ${
+            mode === 'note'
+              ? 'bg-[#FF6B1A] text-[#0A0806]'
+              : 'text-[#7A6F65] hover:text-[#F5EFE7]'
+          }`}
         >
           Note
         </button>
         <button
           onClick={() => setMode('lead')}
-          className={`text-xs font-mono px-3 py-1.5 rounded transition-colors ${mode === 'lead' ? 'bg-[#FF6B1A] text-[#0A0806]' : 'text-[#7A6F65] hover:text-[#F5EFE7]'}`}
+          className={`text-xs font-mono px-3 py-1.5 rounded transition-colors ${
+            mode === 'lead'
+              ? 'bg-[#FF6B1A] text-[#0A0806]'
+              : 'text-[#7A6F65] hover:text-[#F5EFE7]'
+          }`}
         >
           Lead
         </button>
@@ -74,7 +91,11 @@ export function CaptureBox({ onCaptured }: { onCaptured: () => void }) {
             className="w-full bg-[#0A0806] text-[#F5EFE7] placeholder-[#7A6F65] text-sm border border-[#1F1813] rounded px-3 py-2 outline-none focus:border-[#8B4A2A]"
           />
           <div className="flex justify-end mt-2">
-            <button onClick={submitNote} disabled={!noteText.trim() || busy} className="bg-[#FF6B1A] text-[#0A0806] text-sm font-medium py-1.5 px-4 rounded disabled:opacity-30">
+            <button
+              onClick={submitNote}
+              disabled={!noteText.trim() || busy}
+              className="bg-[#FF6B1A] text-[#0A0806] text-sm font-medium py-1.5 px-4 rounded disabled:opacity-30 transition-colors hover:bg-[#FFB347]"
+            >
               Save Note
             </button>
           </div>
@@ -88,8 +109,9 @@ export function CaptureBox({ onCaptured }: { onCaptured: () => void }) {
             onChange={(e) => setLeadName(e.target.value)}
             className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded px-3 py-2 outline-none focus:border-[#8B4A2A]"
           />
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-             <input
+            <input
               type="tel"
               placeholder="Phone Number"
               value={leadPhone}
@@ -104,6 +126,7 @@ export function CaptureBox({ onCaptured }: { onCaptured: () => void }) {
               className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded px-3 py-2 outline-none focus:border-[#8B4A2A]"
             />
           </div>
+
           <input
             type="text"
             placeholder="Note (e.g. wants demo)"
@@ -111,12 +134,31 @@ export function CaptureBox({ onCaptured }: { onCaptured: () => void }) {
             onChange={(e) => setLeadNote(e.target.value)}
             className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded px-3 py-2 outline-none focus:border-[#8B4A2A]"
           />
-          <div className="flex justify-between items-center mt-2">
-            <span className="text-xs text-[#8B4A2A]">{error}</span>
-            <button onClick={submitLead} disabled={!leadName.trim() || busy} className="bg-[#FF6B1A] text-[#0A0806] text-sm font-medium py-1.5 px-4 rounded disabled:opacity-30">
-              Save Lead
-            </button>
+
+          <div className="flex items-center gap-3 mt-4">
+            <select
+              value={leadStatus}
+              onChange={(e) => setLeadStatus(e.target.value as LeadData['status'])}
+              className={`bg-[#0A0806] text-xs rounded px-2 py-1 outline-none transition-all duration-200 focus:ring-2 ring-opacity-50 ${statusColors[leadStatus]}`}
+            >
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="interested">Interested</option>
+              <option value="client">Client</option>
+              <option value="dead">Dead</option>
+            </select>
+
+            <div className="flex-1 flex justify-end">
+              <button
+                onClick={submitLead}
+                disabled={!leadName.trim() || busy}
+                className="bg-[#FF6B1A] text-[#0A0806] text-sm font-medium py-1.5 px-4 rounded disabled:opacity-30 transition-colors hover:bg-[#FFB347]"
+              >
+                Save Lead
+              </button>
+            </div>
           </div>
+          {error && <p className="text-xs text-[#8B4A2A] text-right mt-1">{error}</p>}
         </div>
       )}
     </div>

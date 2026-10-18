@@ -18,8 +18,18 @@ export default function LeadsPage() {
   useEffect(() => { refresh() }, [refresh])
 
   async function handleStatus(leadId: string, status: LeadData['status']) {
+    // Optimistic UI update
     setLeads((prev) => prev.map((l) => l.id === leadId ? { ...l, data: { ...l.data, status } } : l))
     await updateLeadStatus(leadId, status)
+  }
+
+  // Status color map for the glow effect
+  const statusColors: Record<LeadData['status'], string> = {
+    new: 'border-[#7A6F65] text-[#7A6F65] focus:ring-[#7A6F65] focus:border-[#7A6F65]',
+    contacted: 'border-[#8B4A2A] text-[#FFB347] focus:ring-[#FFB347] focus:border-[#FFB347]',
+    interested: 'border-[#FF6B1A] text-[#FF6B1A] focus:ring-[#FF6B1A] focus:border-[#FF6B1A]',
+    client: 'border-[#00E5FF] text-[#00E5FF] focus:ring-[#00E5FF] focus:border-[#00E5FF]',
+    dead: 'border-[#5a1c1c] text-[#ff4d4d] focus:ring-[#ff4d4d] focus:border-[#ff4d4d]',
   }
 
   return (
@@ -50,7 +60,7 @@ export default function LeadsPage() {
               <select
                 value={lead.data.status}
                 onChange={(e) => handleStatus(lead.id, e.target.value as LeadData['status'])}
-                className="bg-[#0A0806] text-xs text-[#F5EFE7] border border-[#1F1813] rounded px-2 py-1 outline-none"
+                className={`bg-[#0A0806] text-xs rounded px-2 py-1 outline-none transition-all duration-200 focus:ring-2 ring-opacity-50 shadow-[0_0_10px_rgba(0,0,0,0)] ${statusColors[lead.data.status]}`}
               >
                 <option value="new">New</option>
                 <option value="contacted">Contacted</option>

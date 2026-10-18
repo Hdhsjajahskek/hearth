@@ -37,6 +37,12 @@ export default function InboxPage() {
           </h1>
           <div className="flex items-center gap-4">
             <Link
+              href="/books"
+              className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
+            >
+              books
+            </Link>
+            <Link
               href="/leads"
               className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
             >
