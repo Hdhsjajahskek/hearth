@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { listLeads, updateLeadStatus, deleteLead } from '@/lib/hearth/leads'
+import { listLeads, updateLeadStatus, deleteLead, updateLead } from '@/lib/hearth/leads'
 import { logOutreach, getOutreachStats, OutreachStats } from '@/lib/hearth/outreach'
 import { getDayNumber } from '@/lib/hearth/read'
 import type { LeadData, HearthNode } from '@/lib/hearth/types'
@@ -27,6 +27,14 @@ export default function LeadsPage() {
   const [logCallbacks, setLogCallbacks] = useState('')
   const [logDemos, setLogDemos] = useState('')
   const [logging, setLogging] = useState(false)
+
+  // Edit State
+  const [editingLead, setEditingLead] = useState<HearthNode<LeadData> | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editAddress, setEditAddress] = useState('')
+  const [editNote, setEditNote] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const refresh = useCallback(async () => {
     const [data, statsData] = await Promise.all([listLeads(), getOutreachStats()])
@@ -64,6 +72,44 @@ export default function LeadsPage() {
     await deleteLead(leadId)
   }
 
+  function openEditModal(lead: HearthNode<LeadData>) {
+    setEditingLead(lead)
+    setEditName(lead.data.name)
+    setEditPhone(lead.data.phone || '')
+    setEditAddress(lead.data.address || '')
+    setEditNote(lead.data.note || '')
+  }
+
+  async function saveEdit() {
+    if (!editingLead || !editName.trim()) return
+    setSavingEdit(true)
+    
+    const updatedData: LeadData = {
+      ...editingLead.data,
+      name: editName.trim(),
+      phone: editPhone.trim() || null,
+      address: editAddress.trim() || null,
+      note: editNote.trim() || null,
+    }
+
+    const res = await updateLead(editingLead.id, updatedData)
+    setSavingEdit(false)
+
+    if (res.ok) {
+      setLeads((prev) => prev.map((l) => l.id === editingLead.id ? { ...l, data: updatedData } : l))
+      setGrouped((prev) => {
+        const next = { ...prev }
+        for (const day in next) {
+          next[day] = next[day].map((l) => l.id === editingLead.id ? { ...l, data: updatedData } : l)
+        }
+        return next
+      })
+      setEditingLead(null)
+    } else {
+      alert(res.error)
+    }
+  }
+
   async function submitOutreach() {
     setLogging(true)
     const r = parseInt(logReached) || 0
@@ -85,8 +131,6 @@ export default function LeadsPage() {
   }
 
   const sortedDays = Object.keys(grouped).map(Number).sort((a, b) => b - a)
-
-  // Helper to render percentages
   const pct = (num: number, total: number) => total === 0 ? '0%' : Math.round((num / total) * 100) + '%'
 
   return (
@@ -112,35 +156,32 @@ export default function LeadsPage() {
             </div>
 
             {showLogForm ? (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col md:flex-row items-center gap-3">
                 <input type="number" placeholder="Reached" value={logReached} onChange={e => setLogReached(e.target.value)} className="w-full bg-[#0A0806] text-sm text-center border border-[#1F1813] rounded p-2 outline-none focus:border-[#FF6B1A]" />
                 <input type="number" placeholder="Callbacks" value={logCallbacks} onChange={e => setLogCallbacks(e.target.value)} className="w-full bg-[#0A0806] text-sm text-center border border-[#1F1813] rounded p-2 outline-none focus:border-[#FF6B1A]" />
                 <input type="number" placeholder="Demos" value={logDemos} onChange={e => setLogDemos(e.target.value)} className="w-full bg-[#0A0806] text-sm text-center border border-[#1F1813] rounded p-2 outline-none focus:border-[#FF6B1A]" />
-                <button onClick={submitOutreach} disabled={logging} className="bg-[#FF6B1A] text-[#0A0806] font-bold px-4 py-2 rounded disabled:opacity-50">Save</button>
+                <button onClick={submitOutreach} disabled={logging} className="w-full md:w-auto bg-[#FF6B1A] text-[#0A0806] font-bold px-6 py-2 rounded disabled:opacity-50">Save</button>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-4">
-                {/* TODAY */}
-                <div className="border-r border-[#1F1813] pr-4 last:border-0">
-                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2">Today</p>
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex-1">
+                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2 border-b border-[#1F1813] pb-1">Today</p>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between"><span className="text-[#7A6F65]">Reached</span> <span className="font-mono">{stats.today.reached}</span></div>
                     <div className="flex justify-between"><span className="text-[#7A6F65]">Callback</span> <span className="font-mono text-[#FFB347]">{stats.today.callbacks} <span className="text-[10px]">({pct(stats.today.callbacks, stats.today.reached)})</span></span></div>
                     <div className="flex justify-between"><span className="text-[#7A6F65]">Demo</span> <span className="font-mono text-[#00E5FF]">{stats.today.demos} <span className="text-[10px]">({pct(stats.today.demos, stats.today.reached)})</span></span></div>
                   </div>
                 </div>
-                {/* WEEK */}
-                <div className="border-r border-[#1F1813] pr-4 last:border-0">
-                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2">This Week</p>
+                <div className="flex-1">
+                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2 border-b border-[#1F1813] pb-1">This Week</p>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between"><span className="text-[#7A6F65]">Reached</span> <span className="font-mono">{stats.week.reached}</span></div>
                     <div className="flex justify-between"><span className="text-[#7A6F65]">Callback</span> <span className="font-mono text-[#FFB347]">{stats.week.callbacks} <span className="text-[10px]">({pct(stats.week.callbacks, stats.week.reached)})</span></span></div>
                     <div className="flex justify-between"><span className="text-[#7A6F65]">Demo</span> <span className="font-mono text-[#00E5FF]">{stats.week.demos} <span className="text-[10px]">({pct(stats.week.demos, stats.week.reached)})</span></span></div>
                   </div>
                 </div>
-                {/* MONTH */}
-                <div>
-                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2">This Month</p>
+                <div className="flex-1">
+                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2 border-b border-[#1F1813] pb-1">This Month</p>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between"><span className="text-[#7A6F65]">Reached</span> <span className="font-mono">{stats.month.reached}</span></div>
                     <div className="flex justify-between"><span className="text-[#7A6F65]">Callback</span> <span className="font-mono text-[#FFB347]">{stats.month.callbacks} <span className="text-[10px]">({pct(stats.month.callbacks, stats.month.reached)})</span></span></div>
@@ -175,7 +216,8 @@ export default function LeadsPage() {
                       </p>
                       {lead.data.note && <p className="text-xs text-[#FFB347] mt-1">{lead.data.note}</p>}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => openEditModal(lead)} className="text-xs text-[#7A6F65] hover:text-[#FF6B1A] transition-colors">Edit</button>
                       <select
                         value={lead.data.status}
                         onChange={(e) => handleStatus(lead.id, e.target.value as LeadData['status'])}
@@ -202,6 +244,27 @@ export default function LeadsPage() {
           ))}
         </div>
       </div>
+
+      {/* EDIT MODAL */}
+      {editingLead && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setEditingLead(null)}>
+          <div className="bg-[#14100C] border border-[#1F1813] rounded-xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <h2 className="text-lg font-medium mb-4">Edit Lead</h2>
+              <div className="space-y-3">
+                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]" />
+                <input type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone" className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]" />
+                <input type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Address" className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]" />
+                <input type="text" value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="Note" className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]" />
+              </div>
+            </div>
+            <div className="flex border-t border-[#1F1813]">
+              <button onClick={() => setEditingLead(null)} className="flex-1 py-3 text-sm font-medium text-[#7A6F65] hover:text-[#F5EFE7] bg-[#0A0806] transition-colors">Cancel</button>
+              <button onClick={saveEdit} disabled={savingEdit || !editName.trim()} className="flex-1 py-3 text-sm font-medium text-[#FF6B1A] bg-[#14100C] hover:bg-[#1A140F] border-l border-[#1F1813] transition-colors">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

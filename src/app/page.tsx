@@ -44,14 +44,26 @@ export default function DailyBriefPage() {
     <main className="min-h-screen bg-[#0A0806] text-[#F5EFE7] pb-24">
       <div className="max-w-2xl mx-auto px-4 md:px-6 py-12">
         
-        <header className="flex items-start justify-between mb-12">
+        <header className="flex items-start justify-between mb-8">
           <div>
             <h1 className="font-mono tracking-[0.3em] text-xs text-[#7A6F65] mb-4">HEARTH</h1>
             <h2 className="text-3xl font-medium tracking-tight">{greeting}, Bhupesh.</h2>
             <p className="text-sm text-[#7A6F65] mt-2">{todayDate}</p>
           </div>
-          <button onClick={signOut} className="text-[10px] text-[#7A6F65] hover:text-[#F5EFE7] font-mono transition-colors">sign out</button>
+          <button onClick={signOut} className="text-[10px] text-[#7A6F65] hover:text-[#F5EFE7] font-mono transition-colors mt-2">
+            sign out
+          </button>
         </header>
+
+        {/* THESE ARE THE BUTTONS YOU ARE MISSING */}
+        <div className="flex gap-3 mb-8">
+          <Link href="/contacts" className="flex-1 border border-[#1F1813] rounded-xl bg-[#14100C] hover:bg-[#1A140F] p-3 text-center transition-colors hover:border-[#8B4A2A]">
+            <span className="text-xs text-[#7A6F65] font-mono uppercase tracking-wider">Contacts</span>
+          </Link>
+          <Link href="/events" className="flex-1 border border-[#1F1813] rounded-xl bg-[#14100C] hover:bg-[#1A140F] p-3 text-center transition-colors hover:border-[#8B4A2A]">
+            <span className="text-xs text-[#7A6F65] font-mono uppercase tracking-wider">Calendar</span>
+          </Link>
+        </div>
 
         <div className="mb-12">
           <CaptureBox onCaptured={refresh} />
@@ -63,7 +75,7 @@ export default function DailyBriefPage() {
             <h3 className="text-xs text-[#FF6B1A] font-mono uppercase tracking-wider mb-4">Today's Agenda</h3>
             <div className="space-y-3">
               {agenda.events.map((ev) => (
-                <div key={ev.id} className="border border-[#1F1813] rounded-lg bg-[#14100C] p-4">
+                <div key={ev.id} className="border border-[#1F1813] rounded-xl bg-[#14100C] p-4">
                   <p className="text-[#F5EFE7] text-sm font-medium">{ev.data.title}</p>
                   <p className="text-xs text-[#FF6B1A] mt-1 font-mono">
                     {ev.data.time ? `${ev.data.time} · ` : ''}{ev.data.date}
@@ -72,7 +84,7 @@ export default function DailyBriefPage() {
                 </div>
               ))}
               {agenda.reminders.map((rem) => (
-                <div key={rem.id} className="border border-[#1F1813] rounded-lg bg-[#14100C] p-4 border-l-4 border-l-[#FFB347]">
+                <div key={rem.id} className="border border-[#1F1813] rounded-xl bg-[#14100C] p-4 border-l-4 border-l-[#FFB347]">
                   <p className="text-sm text-[#F5EFE7]">{rem.data.content}</p>
                 </div>
               ))}
@@ -84,7 +96,7 @@ export default function DailyBriefPage() {
         {recentBook && (
           <section>
             <h3 className="text-xs text-[#FF6B1A] font-mono uppercase tracking-wider mb-4">Continue Reading</h3>
-            <Link href={`/books/${recentBook.id}`} className="block border border-[#1F1813] rounded-xl bg-[#14100C] hover:bg-[#1A140F] p-6 transition-all hover:border-[#8B4A2A]">
+            <Link href={`/books/${recentBook.id}`} className="block border border-[#1F1813] rounded-xl bg-[#14100C] hover:bg-[#1A140F] p-5 transition-all hover:border-[#8B4A2A]">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-lg text-[#F5EFE7] font-medium mb-1">{recentBook.data.title}</p>
