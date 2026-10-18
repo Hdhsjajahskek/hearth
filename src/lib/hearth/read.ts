@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import type { HearthNode, NoteData, LeadData, BookData } from './types'
+import type { HearthNode, NoteData, LeadData, BookData, EventData } from './types'
 
 // ============================================================
 // NOTES (Inbox)
@@ -57,6 +57,37 @@ export async function getRecentBook(): Promise<HearthNode<BookData> | null> {
     .maybeSingle()
 
   return data as HearthNode<BookData> | null
+}
+
+// ============================================================
+// TODAY'S AGENDA (Events & Reminders)
+// ============================================================
+
+export async function getTodayAgenda(): Promise<{ events: HearthNode<EventData>[], reminders: HearthNode<NoteData>[] }> {
+  const supabase = createClient()
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  // 1. Get Events for Today
+  const { data: events } = await supabase
+    .from('nodes')
+    .select('*')
+    .eq('type', 'event')
+    .eq('data->>date', todayStr)
+    .order('data->>time', { ascending: true })
+
+  // 2. Get Notes that act as reminders (simple heuristic: contains "remind" and is recent)
+  const { data: reminders } = await supabase
+    .from('nodes')
+    .select('*')
+    .eq('type', 'note')
+    .ilike('data->>content', '%remind%')
+    .gte('created_at', new Date(Date.now() - 86400000).toISOString()) // last 24h
+    .order('created_at', { ascending: false })
+
+  return {
+    events: (events ?? []) as HearthNode<EventData>[],
+    reminders: (reminders ?? []) as HearthNode<NoteData>[]
+  }
 }
 
 // ============================================================

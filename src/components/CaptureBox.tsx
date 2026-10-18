@@ -3,139 +3,131 @@
 import { useState } from 'react'
 import { captureNote } from '@/lib/hearth/capture'
 import { createLead } from '@/lib/hearth/leads'
+import { createContact } from '@/lib/hearth/contacts'
+import { createEvent } from '@/lib/hearth/events'
 import type { LeadData } from '@/lib/hearth/types'
 
+type Mode = 'note' | 'lead' | 'contact' | 'event'
+
 export function CaptureBox({ onCaptured }: { onCaptured: () => void }) {
-  const [mode, setMode] = useState<'note' | 'lead'>('note')
+  const [mode, setMode] = useState<Mode>('note')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Note
   const [noteText, setNoteText] = useState('')
+
+  // Lead
   const [leadName, setLeadName] = useState('')
   const [leadPhone, setLeadPhone] = useState('')
   const [leadAddress, setLeadAddress] = useState('')
   const [leadNote, setLeadNote] = useState('')
   const [leadStatus, setLeadStatus] = useState<LeadData['status']>('new')
 
-  async function submitNote() {
-    if (!noteText.trim() || busy) return
+  // Contact
+  const [cName, setCName] = useState('')
+  const [cPhone, setCPhone] = useState('')
+  const [cEmail, setCEmail] = useState('')
+  const [cNote, setCNote] = useState('')
+
+  // Event
+  const [eTitle, setETitle] = useState('')
+  const [eDate, setEDate] = useState('')
+  const [eTime, setETime] = useState('')
+  const [eNote, setENote] = useState('')
+
+  async function handleSubmit() {
     setBusy(true)
     setError(null)
-    const res = await captureNote(noteText)
+    let res: { ok: boolean; error?: string } = { ok: false }
+
+    if (mode === 'note') {
+      if (!noteText.trim()) return setBusy(false)
+      res = await captureNote(noteText)
+      if (res.ok) setNoteText('')
+    } else if (mode === 'lead') {
+      if (!leadName.trim()) return setBusy(false)
+      res = await createLead(leadName, leadPhone, leadAddress, leadNote, leadStatus)
+      if (res.ok) { setLeadName(''); setLeadPhone(''); setLeadAddress(''); setLeadNote(''); setLeadStatus('new') }
+    } else if (mode === 'contact') {
+      if (!cName.trim()) return setBusy(false)
+      res = await createContact(cName, cPhone, cEmail, cNote)
+      if (res.ok) { setCName(''); setCPhone(''); setCEmail(''); setCNote('') }
+    } else if (mode === 'event') {
+      if (!eTitle.trim() || !eDate) return setBusy(false)
+      res = await createEvent(eTitle, eDate, eTime, eNote)
+      if (res.ok) { setETitle(''); setEDate(''); setETime(''); setENote('') }
+    }
+
     setBusy(false)
-    if (!res.ok) return setError(res.error)
-    setNoteText('')
-    onCaptured()
+    if (!res.ok) setError(res.error || 'Failed')
+    else onCaptured()
   }
 
-  async function submitLead() {
-    if (!leadName.trim() || busy) return
-    setBusy(true)
-    setError(null)
-    const res = await createLead(leadName, leadPhone, leadAddress, leadNote, leadStatus)
-    setBusy(false)
-    if (!res.ok) return setError(res.error)
-    
-    setLeadName('')
-    setLeadPhone('')
-    setLeadAddress('')
-    setLeadNote('')
-    setLeadStatus('new')
-    onCaptured()
-  }
-
-  const statusColors: Record<LeadData['status'], string> = {
-    new: 'border-[#7A6F65] text-[#7A6F65] focus:ring-[#7A6F65]',
-    contacted: 'border-[#8B4A2A] text-[#FFB347] focus:ring-[#FFB347]',
-    interested: 'border-[#FF6B1A] text-[#FF6B1A] focus:ring-[#FF6B1A]',
-    client: 'border-[#00E5FF] text-[#00E5FF] focus:ring-[#00E5FF]',
-    dead: 'border-[#5a1c1c] text-[#ff4d4d] focus:ring-[#ff4d4d]',
-  }
+  const inputClass = "w-full bg-[#0A0806] text-[#F5EFE7] placeholder-[#7A6F65] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]"
 
   return (
     <div className="border border-[#1F1813] rounded-xl bg-[#14100C] p-5 shadow-2xl">
-      <div className="flex gap-4 mb-5 border-b border-[#1F1813] pb-3">
-        <button
-          onClick={() => setMode('note')}
-          className={`text-sm font-medium transition-colors ${mode === 'note' ? 'text-[#FF6B1A]' : 'text-[#7A6F65] hover:text-[#F5EFE7]'}`}
-        >
-          Capture Note
-        </button>
-        <button
-          onClick={() => setMode('lead')}
-          className={`text-sm font-medium transition-colors ${mode === 'lead' ? 'text-[#FF6B1A]' : 'text-[#7A6F65] hover:text-[#F5EFE7]'}`}
-        >
-          Add Lead
-        </button>
+      <div className="flex gap-4 mb-5 border-b border-[#1F1813] pb-3 overflow-x-auto">
+        {(['note', 'lead', 'contact', 'event'] as Mode[]).map((m) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`text-sm font-medium transition-colors capitalize whitespace-nowrap ${mode === m ? 'text-[#FF6B1A]' : 'text-[#7A6F65] hover:text-[#F5EFE7]'}`}
+          >
+            {m}
+          </button>
+        ))}
       </div>
 
-      {mode === 'note' ? (
-        <div>
-          <textarea
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            placeholder="What's on your mind?"
-            rows={3}
-            className="w-full bg-transparent text-[#F5EFE7] placeholder-[#7A6F65] text-base border-none outline-none resize-none"
-          />
-          <div className="flex justify-between items-center mt-3 pt-3 border-t border-[#1F1813]">
-            <span className="text-[10px] text-[#7A6F65] font-mono">Press Save to capture</span>
-            <button onClick={submitNote} disabled={!noteText.trim() || busy} className="bg-[#FF6B1A] text-[#0A0806] text-xs font-medium py-2 px-5 rounded-md disabled:opacity-30 transition-colors">
-              Save Note
-            </button>
-          </div>
-        </div>
-      ) : (
+      {mode === 'note' && (
+        <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="What's on your mind?" rows={3} className="w-full bg-transparent text-[#F5EFE7] placeholder-[#7A6F65] text-base border-none outline-none resize-none" />
+      )}
+
+      {mode === 'lead' && (
         <div className="space-y-3">
-          <input
-            type="text"
-            placeholder="Business Name *"
-            value={leadName}
-            onChange={(e) => setLeadName(e.target.value)}
-            className="w-full bg-[#0A0806] text-[#F5EFE7] placeholder-[#7A6F65] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]"
-          />
+          <input type="text" placeholder="Business Name *" value={leadName} onChange={(e) => setLeadName(e.target.value)} className={inputClass} />
           <div className="grid grid-cols-2 gap-3">
-             <input
-              type="tel"
-              placeholder="Phone"
-              value={leadPhone}
-              onChange={(e) => setLeadPhone(e.target.value)}
-              className="w-full bg-[#0A0806] text-[#F5EFE7] placeholder-[#7A6F65] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]"
-            />
-            <input
-              type="text"
-              placeholder="Address"
-              value={leadAddress}
-              onChange={(e) => setLeadAddress(e.target.value)}
-              className="w-full bg-[#0A0806] text-[#F5EFE7] placeholder-[#7A6F65] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]"
-            />
+            <input type="tel" placeholder="Phone" value={leadPhone} onChange={(e) => setLeadPhone(e.target.value)} className={inputClass} />
+            <input type="text" placeholder="Address" value={leadAddress} onChange={(e) => setLeadAddress(e.target.value)} className={inputClass} />
           </div>
-          <input
-            type="text"
-            placeholder="Note (optional)"
-            value={leadNote}
-            onChange={(e) => setLeadNote(e.target.value)}
-            className="w-full bg-[#0A0806] text-[#F5EFE7] placeholder-[#7A6F65] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]"
-          />
-          <div className="flex items-center justify-between mt-2 pt-3 border-t border-[#1F1813]">
-            <select
-              value={leadStatus}
-              onChange={(e) => setLeadStatus(e.target.value as LeadData['status'])}
-              className={`bg-[#0A0806] text-xs rounded-md px-3 py-2 outline-none border transition-all ${statusColors[leadStatus]}`}
-            >
-              <option value="new">New</option>
-              <option value="contacted">Contacted</option>
-              <option value="interested">Interested</option>
-              <option value="client">Client</option>
-              <option value="dead">Dead</option>
-            </select>
-            <button onClick={submitLead} disabled={!leadName.trim() || busy} className="bg-[#FF6B1A] text-[#0A0806] text-xs font-medium py-2 px-5 rounded-md disabled:opacity-30 transition-colors">
-              Save Lead
-            </button>
-          </div>
-          {error && <p className="text-xs text-[#8B4A2A] text-right mt-1">{error}</p>}
+          <input type="text" placeholder="Note" value={leadNote} onChange={(e) => setLeadNote(e.target.value)} className={inputClass} />
+          <select value={leadStatus} onChange={(e) => setLeadStatus(e.target.value as LeadData['status'])} className={inputClass}>
+            <option value="new">New</option>
+            <option value="contacted">Contacted</option>
+            <option value="interested">Interested</option>
+            <option value="client">Client</option>
+            <option value="dead">Dead</option>
+          </select>
         </div>
       )}
+
+      {mode === 'contact' && (
+        <div className="space-y-3">
+          <input type="text" placeholder="Name *" value={cName} onChange={(e) => setCName(e.target.value)} className={inputClass} />
+          <input type="tel" placeholder="Phone" value={cPhone} onChange={(e) => setCPhone(e.target.value)} className={inputClass} />
+          <input type="email" placeholder="Email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} className={inputClass} />
+          <input type="text" placeholder="Note" value={cNote} onChange={(e) => setCNote(e.target.value)} className={inputClass} />
+        </div>
+      )}
+
+      {mode === 'event' && (
+        <div className="space-y-3">
+          <input type="text" placeholder="Event/Meeting Title *" value={eTitle} onChange={(e) => setETitle(e.target.value)} className={inputClass} />
+          <div className="grid grid-cols-2 gap-3">
+            <input type="date" value={eDate} onChange={(e) => setEDate(e.target.value)} className={inputClass} />
+            <input type="time" value={eTime} onChange={(e) => setETime(e.target.value)} className={inputClass} />
+          </div>
+          <input type="text" placeholder="Note" value={eNote} onChange={(e) => setENote(e.target.value)} className={inputClass} />
+        </div>
+      )}
+
+      <div className="flex justify-between items-center mt-4 pt-3 border-t border-[#1F1813]">
+        <span className="text-xs text-[#8B4A2A]">{error}</span>
+        <button onClick={handleSubmit} disabled={busy} className="bg-[#FF6B1A] text-[#0A0806] text-xs font-medium py-2 px-5 rounded-md disabled:opacity-30 transition-colors">
+          Save {mode.charAt(0).toUpperCase() + mode.slice(1)}
+        </button>
+      </div>
     </div>
   )
 }
