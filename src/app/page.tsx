@@ -6,6 +6,7 @@ import { CaptureBox } from '@/components/CaptureBox'
 import { NoteList } from '@/components/NoteList'
 import { recentNotes } from '@/lib/hearth/read'
 import type { HearthNode, NoteData } from '@/lib/hearth/types'
+import Link from 'next/link'
 
 export default function InboxPage() {
   const [notes, setNotes] = useState<HearthNode<NoteData>[]>([])
@@ -29,32 +30,32 @@ export default function InboxPage() {
 
   return (
     <main className="min-h-screen bg-[#0A0806] text-[#F5EFE7]">
-      <div className="max-w-2xl mx-auto px-6 py-10">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-8">
         <header className="flex items-center justify-between mb-8">
-  <h1 className="font-mono tracking-[0.3em] text-sm text-[#7A6F65]">
-    HEARTH
-  </h1>
-<div className="flex items-center gap-4">
-  <a
-    href="/search"
-    className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
-  >
-    search
-  </a>
-  <a
-    href="/export"
-    className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
-  >
-    export
-  </a>
-  <button
-    onClick={signOut}
-    className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
-  >
-    sign out
-  </button>
-</div>
-</header>
+          <h1 className="font-mono tracking-[0.3em] text-sm text-[#7A6F65]">
+            HEARTH
+          </h1>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/leads"
+              className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
+            >
+              leads
+            </Link>
+            <Link
+              href="/search"
+              className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
+            >
+              search
+            </Link>
+            <button
+              onClick={signOut}
+              className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
+            >
+              sign out
+            </button>
+          </div>
+        </header>
 
         <CaptureBox onCaptured={refresh} />
 
