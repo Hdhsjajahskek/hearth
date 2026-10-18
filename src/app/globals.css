@@ -1,26 +1,95 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-background: #F7F4EC;
+  --color-surface: rgba(255, 255, 255, 0.7); /* More transparent glass */
+  --color-accent: #FF6B1A;
+  
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-serif: var(--font-playfair), Georgia, serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html, body {
+  background-color: var(--color-background);
+  color: #1A1A1A;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* The Massive Background Text */
+body::before {
+  content: "HEARTH";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-serif);
+  font-size: 32vw;
+  font-weight: 700;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.6); /* Bright white outline */
+  z-index: -1;
+  pointer-events: none;
+  white-space: nowrap;
+  letter-spacing: -0.05em;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  letter-spacing: -0.03em;
+}
+
+/* GLOSSY GLASS CARDS */
+.editorial-card {
+  background: var(--color-surface);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 1); /* Bright top shine */
+  box-shadow: 
+    0 20px 40px -10px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.editorial-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 
+    0 30px 60px -15px rgba(255, 107, 26, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Vibrant Orange Button */
+.accent-btn {
+  background: linear-gradient(135deg, #FF8C42 0%, #FF4D00 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 25px -5px rgba(255, 77, 0, 0.5);
+}
+.accent-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 15px 35px -5px rgba(255, 77, 0, 0.7);
+}
+
+/* EXTREMELY VIBRANT FLOATING ORBS */
+.color-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  z-index: -2; /* Keep them far back */
+  pointer-events: none;
+  opacity: 0.8;
+  mix-blend-mode: multiply; /* Creates those rich overlapping shades */
+  animation: float 15s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(80px, -60px) scale(1.2); }
 }

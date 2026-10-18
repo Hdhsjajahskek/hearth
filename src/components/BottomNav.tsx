@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 export function BottomNav() {
   const pathname = usePathname()
 
-  // 5 tabs only. Contacts and Events are on the Home screen.
   const links = [
     { href: '/', label: 'Brief' },
     { href: '/inbox', label: 'Inbox' },
@@ -16,16 +15,18 @@ export function BottomNav() {
   ]
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-[#14100C] border-t border-[#1F1813] z-50 pb-safe">
-      <div className="max-w-2xl mx-auto flex justify-around items-center h-16 px-2">
+    <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4">
+      <div className="bg-white/80 backdrop-blur-xl border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full flex items-center p-2 w-full max-w-md">
         {links.map((link) => {
           const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
           return (
             <Link
               key={link.href}
               href={link.href}
-              className={`flex flex-col items-center justify-center w-full h-full text-[10px] font-mono transition-colors ${
-                isActive ? 'text-[#FF6B1A]' : 'text-[#7A6F65] hover:text-[#F5EFE7]'
+              className={`flex-1 flex flex-col items-center justify-center py-2 text-sm font-sans font-medium transition-all duration-300 ${
+                isActive 
+                  ? 'text-[#FF6B1A] bg-[#FF6B1A]/10 rounded-full' 
+                  : 'text-[#8A8F98] hover:text-[#1A1A1A]'
               }`}
             >
               {link.label}
