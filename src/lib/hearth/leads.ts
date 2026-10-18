@@ -59,7 +59,6 @@ export async function updateLeadStatus(
   status: LeadData['status']
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = createClient()
-  
   const { data: existing, error: readError } = await supabase
     .from('nodes')
     .select('data')
@@ -77,4 +76,11 @@ export async function updateLeadStatus(
 
   if (error) return { ok: false, error: error.message }
   return { ok: true }
+}
+
+// --- NEW: DELETE LEAD ---
+export async function deleteLead(leadId: string): Promise<boolean> {
+  const supabase = createClient()
+  const { error } = await supabase.from('nodes').delete().eq('id', leadId)
+  return !error
 }
