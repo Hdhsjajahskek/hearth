@@ -17,7 +17,8 @@
       overflow: hidden;
       font-family: system-ui, -apple-system, sans-serif;
       -webkit-text-size-adjust: 100%;
-      touch-action: pan-y; /* allow vertical scroll, block browser pinch */
+      /* Essential for custom pinch handling */
+      touch-action: manipulation;
     }
     #viewerContainer {
       position: absolute;
@@ -26,8 +27,6 @@
       overflow-x: hidden;
       background: #0A0806;
       -webkit-overflow-scrolling: touch;
-      /* Let browser handle vertical scroll only */
-      touch-action: pan-y;
     }
     #viewer {
       padding: 24px 12px 48px 12px;
@@ -149,7 +148,6 @@
       attachScrollTracking()
       attachResizeHandler()
 
-      // Render the first 3 pages immediately — no blank screen
       renderPage(1)
       renderPage(2)
       renderPage(3)
@@ -163,7 +161,6 @@
     }
 
     function createPlaceholders() {
-      // Bigger rootMargin = renders pages before they scroll into view
       _observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
@@ -272,10 +269,10 @@
     }
 
     // ============================================================
-    // GESTURES — Swipe only. Pinch handled via CSS touch-action.
+    // GESTURES (Pinch + Swipe)
     // ============================================================
     function attachGestures() {
-      // Ctrl+Scroll on desktop — kept for mouse users
+      // Desktop Ctrl+Scroll
       _container.addEventListener(
         'wheel',
         (e) => {
@@ -287,58 +284,75 @@
         { passive: false }
       )
 
-      // Swipe left/right for prev/next page — mobile only
+      let initialPinchDist = 0
+      let initialPinchZoom = 1
       let touchStartX = 0
       let touchStartY = 0
       let touchStartTime = 0
-      let isMultiTouch = false
+      let isPinching = false
 
-      _container.addEventListener(
-        'touchstart',
-        (e) => {
-          isMultiTouch = e.touches.length > 1
-          if (e.touches.length === 1) {
-            touchStartX = e.touches[0].clientX
-            touchStartY = e.touches[0].clientY
-            touchStartTime = Date.now()
+      _container.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          isPinching = true
+          initialPinchDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          )
+          initialPinchZoom = _zoomMultiplier
+        } else if (e.touches.length === 1) {
+          isPinching = false
+          touchStartX = e.touches[0].clientX
+          touchStartY = e.touches[0].clientY
+          touchStartTime = Date.now()
+        }
+      }, { passive: true })
+
+      _container.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && isPinching) {
+          // Prevent default scroll/pinch behavior ONLY when two fingers are down
+          e.preventDefault()
+          
+          const dist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          )
+          const ratio = dist / initialPinchDist
+          setZoom(initialPinchZoom * ratio)
+        }
+      }, { passive: false })
+
+      _container.addEventListener('touchend', (e) => {
+        if (isPinching) {
+          if (e.touches.length < 2) {
+            isPinching = false
           }
-        },
-        { passive: true }
-      )
+          return
+        }
+        
+        if (e.changedTouches.length !== 1) return
 
-      _container.addEventListener(
-        'touchend',
-        (e) => {
-          if (isMultiTouch) {
-            isMultiTouch = false
-            return
+        const dx = e.changedTouches[0].clientX - touchStartX
+        const dy = e.changedTouches[0].clientY - touchStartY
+        const dt = Date.now() - touchStartTime
+
+        if (Math.abs(dx) > 80 && Math.abs(dy) < 60 && dt < 400) {
+          if (dx < 0 && _currentPage < _pdf.numPages) {
+            _currentPage++
+            gotoPage(_currentPage)
+            window.parent.postMessage(
+              { type: 'hearth:pagechanging', page: _currentPage },
+              '*'
+            )
+          } else if (dx > 0 && _currentPage > 1) {
+            _currentPage--
+            gotoPage(_currentPage)
+            window.parent.postMessage(
+              { type: 'hearth:pagechanging', page: _currentPage },
+              '*'
+            )
           }
-          if (e.changedTouches.length !== 1) return
-
-          const dx = e.changedTouches[0].clientX - touchStartX
-          const dy = e.changedTouches[0].clientY - touchStartY
-          const dt = Date.now() - touchStartTime
-
-          if (Math.abs(dx) > 80 && Math.abs(dy) < 60 && dt < 400) {
-            if (dx < 0 && _currentPage < _pdf.numPages) {
-              _currentPage++
-              gotoPage(_currentPage)
-              window.parent.postMessage(
-                { type: 'hearth:pagechanging', page: _currentPage },
-                '*'
-              )
-            } else if (dx > 0 && _currentPage > 1) {
-              _currentPage--
-              gotoPage(_currentPage)
-              window.parent.postMessage(
-                { type: 'hearth:pagechanging', page: _currentPage },
-                '*'
-              )
-            }
-          }
-        },
-        { passive: true }
-      )
+        }
+      }, { passive: true })
     }
 
     // ============================================================
@@ -347,6 +361,8 @@
     function attachScrollTracking() {
       let timeout
       _container.addEventListener('scroll', () => {
+        if (isPinching) return // Ignore scroll if pinching
+        
         clearTimeout(timeout)
         timeout = setTimeout(() => {
           const rect = _container.getBoundingClientRect()
