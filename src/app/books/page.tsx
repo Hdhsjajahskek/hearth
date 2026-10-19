@@ -62,21 +62,34 @@ export default function BooksPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0806] text-[#F5EFE7] pb-24">
-      <div className="max-w-3xl mx-auto px-6 py-10">
+    <main className="min-h-screen bg-[#F7F4EC] pb-32 relative overflow-hidden">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-[#FF6B1A]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[10%] left-[-150px] w-[600px] h-[600px] bg-[#FFB800]/10 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="max-w-3xl mx-auto px-6 md:px-8 py-10 relative z-10">
+        
         <header className="flex items-center justify-between mb-10">
-          <Link
-            href="/"
-            className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] transition-colors font-mono"
-          >
-            ← home
+          <Link href="/" className="text-sm font-bold text-[#8A8F98] hover:text-[#FF6B1A] font-sans tracking-wide transition-colors">
+            ← Back
           </Link>
-          <h1 className="font-mono tracking-[0.3em] text-sm text-[#7A6F65]">
-            BOOKS
+          <h1 className="font-sans tracking-[0.3em] text-xs text-[#1A1A1A] font-bold uppercase">
+            Library
           </h1>
           <div className="w-12" />
         </header>
 
+        <div className="mb-8">
+          <h2 className="text-3xl md:text-4xl font-serif text-[#1A1A1A] mb-2">
+            Your bookshelf.
+          </h2>
+          <p className="text-base text-[#8A8F98] font-sans">
+            Upload PDFs or EPUBs to read and take notes.
+          </p>
+        </div>
+
+        {/* Uploader */}
         <div className="mb-10">
           <label className="block">
             <input
@@ -89,33 +102,29 @@ export default function BooksPage() {
             />
             <span
               onClick={() => !uploading && fileRef.current?.click()}
-              className="cursor-pointer block w-full text-center border border-dashed border-[#1F1813] hover:border-[#8B4A2A] rounded-lg py-8 transition-colors"
+              className="cursor-pointer block w-full text-center editorial-card rounded-2xl py-6 transition-colors group"
             >
-              <span className="text-sm text-[#7A6F65]">
-                {uploading ? 'uploading…' : 'Drop a PDF or EPUB here, or click to choose'}
+              <span className="text-lg text-[#8A8F98] font-serif group-hover:text-[#FF6B1A] transition-colors">
+                {uploading ? 'uploading…' : '+ Add a new book'}
               </span>
             </span>
           </label>
           {error && (
-            <p className="mt-3 text-sm text-[#8B4A2A]">{error}</p>
+            <p className="mt-3 text-sm text-[#FF6B1A] font-bold">{error}</p>
           )}
         </div>
 
-        {loading && (
-          <p className="text-sm text-[#7A6F65] font-mono">loading…</p>
-        )}
+        {loading && <p className="text-base text-[#8A8F98]">loading…</p>}
 
         {!loading && books.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-sm text-[#7A6F65]">No books yet.</p>
-            <p className="text-xs text-[#7A6F65] mt-1">
-              Upload a PDF or EPUB to start your shelf.
-            </p>
+          <div className="text-center py-16 editorial-card rounded-2xl">
+            <p className="text-lg text-[#8A8F98] font-serif">Your shelf is empty.</p>
+            <p className="text-sm text-[#8A8F98] mt-2 font-sans">Upload a PDF or EPUB above to start reading.</p>
           </div>
         )}
 
         {!loading && books.length > 0 && (
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {books.map((book) => {
               const progress =
                 book.data.format === 'epub'
@@ -132,33 +141,32 @@ export default function BooksPage() {
                 <li key={book.id}>
                   <Link
                     href={`/books/${book.id}`}
-                    className="block border border-[#1F1813] rounded-lg bg-[#14100C] hover:bg-[#1A140F] transition-colors px-5 py-4"
+                    className="block editorial-card rounded-2xl p-5 group relative"
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="text-[#F5EFE7] text-sm font-medium truncate">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xl font-serif text-[#1A1A1A] mb-1 truncate group-hover:text-[#FF6B1A] transition-colors">
                           {book.data.title}
                         </p>
-                        {book.data.author && (
-                          <p className="text-xs text-[#7A6F65] mt-0.5 truncate">
-                            {book.data.author}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-[#1A1A1A] bg-[#FF6B1A]/10 border border-[#FF6B1A]/20 px-2 py-0.5 rounded-full font-sans tracking-widest uppercase font-bold">
+                            {formatLabel}
+                          </span>
+                          <span className="text-xs text-[#8A8F98] font-sans tracking-widest uppercase font-bold">
+                            {progress !== null ? `${progress}% read` : 'Start reading'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 whitespace-nowrap">
-                        <span className="text-[10px] text-[#7A6F65] font-mono uppercase tracking-wider">
-                          {formatLabel}
-                        </span>
-                        <span className="text-xs text-[#7A6F65] font-mono">
-                          {progress !== null ? `${progress}%` : '·'}
-                        </span>
+                      
+                      <div className="flex items-center gap-3">
                         <button
                           onClick={(e) => handleDelete(e, book.id, book.data.file_path, book.data.title)}
-                          className="text-[#8B4A2A] hover:text-[#ff4d4d] transition-colors p-1 text-lg leading-none"
+                          className="text-[#8A8F98] hover:text-[#ff4d4d] transition-colors p-1 text-xl leading-none opacity-0 group-hover:opacity-100"
                           title="Delete book"
                         >
                           ×
                         </button>
+                        <span className="text-[#FF6B1A] text-xl transform group-hover:translate-x-1 transition-transform">→</span>
                       </div>
                     </div>
                   </Link>

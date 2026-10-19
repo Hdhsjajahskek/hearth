@@ -34,46 +34,75 @@ export default function EventsPage() {
   const sortedDates = Object.keys(groupedEvents).sort()
 
   return (
-    <main className="min-h-screen bg-[#0A0806] text-[#F5EFE7] pb-24">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <header className="flex items-center justify-between mb-8">
-          <Link href="/" className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] font-mono">← home</Link>
-          <h1 className="font-mono tracking-[0.3em] text-sm text-[#7A6F65]">CALENDAR</h1>
+    <main className="min-h-screen bg-[#F7F4EC] pb-32 relative overflow-hidden">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-[#00D1FF]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[10%] left-[-150px] w-[600px] h-[600px] bg-[#FFB800]/10 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="max-w-4xl mx-auto px-6 md:px-8 py-16 relative z-10">
+        
+        <header className="flex items-center justify-between mb-16">
+          <Link href="/" className="text-sm font-bold text-[#8A8F98] hover:text-[#FF6B1A] font-sans tracking-wide transition-colors">
+            ← Back
+          </Link>
+          <h1 className="font-sans tracking-[0.3em] text-sm text-[#1A1A1A] font-bold uppercase">
+            Calendar
+          </h1>
           <div className="w-12" />
         </header>
 
-        {loading && <p className="text-sm text-[#7A6F65]">loading…</p>}
+        <div className="mb-12">
+          <h2 className="text-4xl md:text-5xl font-serif text-[#1A1A1A] mb-4">
+            Your schedule.
+          </h2>
+          <p className="text-lg text-[#8A8F98] font-sans">
+            Meetings, events, and dates that matter.
+          </p>
+        </div>
+
+        {loading && <p className="text-lg text-[#8A8F98]">loading…</p>}
         {!loading && events.length === 0 && (
-          <p className="text-sm text-[#7A6F65]">No events scheduled. Go to the Daily Brief to add one.</p>
+          <div className="text-center py-24 editorial-card rounded-3xl">
+            <p className="text-xl text-[#8A8F98] font-serif">No events scheduled.</p>
+            <p className="text-sm text-[#8A8F98] mt-2 font-sans">Add one from the Daily Brief.</p>
+          </div>
         )}
 
-        <div className="space-y-8">
+        <div className="space-y-12">
           {sortedDates.map(date => {
-            const dayDate = new Date(date + 'T00:00:00') // Force local timezone
+            const dayDate = new Date(date + 'T00:00:00') 
             const today = new Date()
             today.setHours(0,0,0,0)
             const isToday = dayDate.getTime() === today.getTime()
 
             return (
               <div key={date}>
-                <div className="flex items-center gap-4 mb-4">
-                  <h2 className={`text-xs font-mono uppercase tracking-widest ${isToday ? 'text-[#FF6B1A]' : 'text-[#7A6F65]'}`}>
-                    {isToday ? 'Today' : dayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                <div className="flex items-center gap-4 mb-6">
+                  <h2 className={`text-sm font-sans uppercase tracking-[0.2em] font-bold ${isToday ? 'text-[#FF6B1A]' : 'text-[#1A1A1A]'}`}>
+                    {isToday ? 'Today' : dayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                   </h2>
-                  <div className="h-[1px] flex-1 bg-[#1F1813]"></div>
+                  <div className="h-[1px] flex-1 bg-black/5"></div>
                 </div>
 
-                <ul className="space-y-3">
+                <ul className="space-y-4">
                   {groupedEvents[date].map(event => (
-                    <li key={event.id} className="border border-[#1F1813] rounded-lg bg-[#14100C] p-4 flex justify-between gap-4">
+                    <li key={event.id} className="editorial-card rounded-3xl p-6 md:p-8 flex justify-between gap-6 group">
                       <div>
-                        <p className="text-sm font-medium text-[#F5EFE7]">{event.data.title}</p>
-                        {event.data.time && <p className="text-xs text-[#FF6B1A] mt-1 font-mono">{event.data.time}</p>}
-                        {event.data.note && <p className="text-xs text-[#7A6F65] mt-1">{event.data.note}</p>}
+                        <p className="text-2xl font-serif text-[#1A1A1A] mb-2">{event.data.title}</p>
+                        {event.data.time && (
+                          <p className="text-sm text-[#FF6B1A] font-sans uppercase tracking-widest font-bold">
+                            {event.data.time}
+                          </p>
+                        )}
+                        {event.data.note && (
+                          <p className="text-base text-[#8A8F98] mt-3 font-sans">{event.data.note}</p>
+                        )}
                       </div>
                       <button 
                         onClick={() => handleDelete(event.id, event.data.title)}
-                        className="text-[#8B4A2A] hover:text-[#ff4d4d] text-lg leading-none self-start"
+                        className="text-[#8A8F98] hover:text-[#ff4d4d] transition-colors text-2xl leading-none w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 self-start"
+                        title="Delete event"
                       >
                         ×
                       </button>

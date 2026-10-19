@@ -44,70 +44,79 @@ export function NoteList({ notes, loading, onDelete }: Props) {
   }
 
   if (loading) {
-    return <p className="text-sm text-[#7A6F65] font-mono">loading…</p>
+    return <p className="text-lg text-[#8A8F98]">loading…</p>
   }
 
   if (notes.length === 0) {
     return (
-      <div className="text-center py-16">
-        <p className="text-[#7A6F65] text-sm">Nothing captured yet.</p>
-        <p className="text-[#7A6F65] text-xs mt-1">
-          Type something above and press Capture.
-        </p>
+      <div className="text-center py-24 editorial-card rounded-3xl">
+        <p className="text-xl text-[#8A8F98] font-serif">Nothing captured yet.</p>
+        <p className="text-sm text-[#8A8F98] mt-2 font-sans">Go to the Brief to capture a thought.</p>
       </div>
     )
   }
 
-  return (
-    <ul className="space-y-1">
-      {notes.map((note) => {
-        const content = note.data.content
-        const title = note.data.title
-        const isMultiline = content.includes('\n')
-        const showTitle = isMultiline && title && title !== content
-        const dayNum = days[note.id]
+  // Group notes by Day for the editorial timeline look
+  const groupedByDay: Record<number, HearthNode<NoteData>[]> = {}
+  for (const note of notes) {
+    const dayNum = days[note.id] || 0
+    if (!groupedByDay[dayNum]) groupedByDay[dayNum] = []
+    groupedByDay[dayNum].push(note)
+  }
+  
+  const sortedDays = Object.keys(groupedByDay).map(Number).sort((a, b) => b - a)
 
-        return (
-          <li
-            key={note.id}
-            className="group border border-[#1F1813] rounded-lg bg-[#14100C] hover:bg-[#1A140F] transition-colors px-4 py-3"
-          >
-            {showTitle && (
-              <p className="text-[#F5EFE7] text-sm font-medium mb-1 truncate">
-                {title}
-              </p>
-            )}
-            <p className="text-[#F5EFE7] text-sm whitespace-pre-wrap break-words leading-relaxed">
-              {content.length > 400 ? content.slice(0, 400) + '…' : content}
-            </p>
-            
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-[#7A6F65] font-mono">
-                  {timeAgo(note.created_at)}
-                </p>
-                {dayNum && (
-                  <>
-                    <span className="text-[#1F1813] text-xs">•</span>
-                    <p className="text-[10px] text-[#FF6B1A] font-mono uppercase tracking-wider">
-                      {dayNum > 0 ? `Day ${dayNum}` : `Pre-Hearth`}
+  return (
+    <div className="space-y-16">
+      {sortedDays.map((dayNum) => (
+        <div key={dayNum}>
+          <div className="flex items-center gap-4 mb-6">
+            <h2 className="text-sm font-sans uppercase tracking-[0.2em] font-bold text-[#FF6B1A]">
+              {dayNum > 0 ? `Day ${dayNum}` : `Pre-Hearth`}
+            </h2>
+            <div className="h-[1px] flex-1 bg-black/5"></div>
+          </div>
+          
+          <ul className="space-y-4">
+            {groupedByDay[dayNum].map((note) => {
+              const content = note.data.content
+              const title = note.data.title
+              const isMultiline = content.includes('\n')
+              const showTitle = isMultiline && title && title !== content
+
+              return (
+                <li key={note.id} className="editorial-card rounded-2xl p-6 md:p-8 group relative">
+                  
+                  {/* Delete button - appears on hover */}
+                  <button 
+                    onClick={() => handleDelete(note.id)}
+                    className="absolute top-4 right-4 text-[#8A8F98] hover:text-[#ff4d4d] opacity-0 group-hover:opacity-100 transition-opacity text-2xl leading-none w-8 h-8 flex items-center justify-center"
+                    title="Delete note"
+                  >
+                    ×
+                  </button>
+
+                  {showTitle && (
+                    <p className="text-2xl text-[#1A1A1A] font-serif mb-3 pr-8">
+                      {title}
                     </p>
-                  </>
-                )}
-              </div>
-              
-              {/* Clear, visible delete button */}
-              <button 
-                onClick={() => handleDelete(note.id)}
-                className="text-xs text-[#8B4A2A] hover:text-[#ff4d4d] transition-colors font-mono"
-                title="Delete note"
-              >
-                delete
-              </button>
-            </div>
-          </li>
-        )
-      })}
-    </ul>
+                  )}
+                  
+                  <p className="text-lg md:text-xl text-[#1A1A1A] font-serif whitespace-pre-wrap break-words leading-relaxed pr-8">
+                    {content.length > 400 ? content.slice(0, 400) + '…' : content}
+                  </p>
+                  
+                  <div className="mt-6 flex items-center gap-2">
+                    <p className="text-xs text-[#8A8F98] font-sans font-bold uppercase tracking-widest">
+                      {timeAgo(note.created_at)}
+                    </p>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
   )
 }
