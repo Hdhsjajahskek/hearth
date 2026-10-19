@@ -11,7 +11,7 @@ const statusColors: Record<LeadData['status'], string> = {
   new: 'border-[#7A6F65] text-[#7A6F65] focus:ring-[#7A6F65]',
   contacted: 'border-[#8B4A2A] text-[#FFB347] focus:ring-[#FFB347]',
   interested: 'border-[#FF6B1A] text-[#FF6B1A] focus:ring-[#FF6B1A]',
-  client: 'border-[#00E5FF] text-[#00E5FF] focus:ring-[#00E5FF]',
+  client: 'border-[#00D1FF] text-[#00D1FF] focus:ring-[#00D1FF]', /* Matched to our new Cyan */
   dead: 'border-[#5a1c1c] text-[#ff4d4d] focus:ring-[#ff4d4d]',
 }
 
@@ -134,58 +134,64 @@ export default function LeadsPage() {
   const pct = (num: number, total: number) => total === 0 ? '0%' : Math.round((num / total) * 100) + '%'
 
   return (
-    <main className="min-h-screen bg-[#0A0806] text-[#F5EFE7] pb-24">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <header className="flex items-center justify-between mb-8">
-          <Link href="/" className="text-xs text-[#7A6F65] hover:text-[#F5EFE7] font-mono">← inbox</Link>
-          <h1 className="font-mono tracking-[0.3em] text-sm text-[#7A6F65]">LEADS</h1>
+    <main className="min-h-screen bg-[#F7F4EC] pb-32 relative overflow-hidden">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-[#FF6B1A]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[10%] left-[-150px] w-[600px] h-[600px] bg-[#FFB800]/10 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="max-w-4xl mx-auto px-6 md:px-8 py-16 relative z-10">
+        
+        <header className="flex items-center justify-between mb-16">
+          <Link href="/" className="text-sm font-bold text-[#8A8F98] hover:text-[#FF6B1A] font-sans tracking-wide transition-colors">← Back</Link>
+          <h1 className="font-sans tracking-[0.3em] text-sm text-[#1A1A1A] font-bold uppercase">Leads</h1>
           <div className="w-12" />
         </header>
 
         {/* OUTREACH TRACKER */}
         {stats && (
-          <div className="mb-10 border border-[#1F1813] rounded-xl bg-[#14100C] p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xs text-[#FF6B1A] font-mono uppercase tracking-wider">Outreach Stats</h2>
+          <div className="editorial-card rounded-3xl p-8 mb-12">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-serif text-[#1A1A1A]">Outreach Stats</h2>
               <button 
                 onClick={() => setShowLogForm(!showLogForm)}
-                className="text-[10px] bg-[#1F1813] hover:bg-[#8B4A2A] text-[#F5EFE7] font-mono px-3 py-1.5 rounded transition-colors"
+                className="text-sm font-bold text-[#FF6B1A] hover:text-[#FF8C42] transition-colors"
               >
                 {showLogForm ? 'Cancel' : '+ Log Today'}
               </button>
             </div>
 
             {showLogForm ? (
-              <div className="flex flex-col md:flex-row items-center gap-3">
-                <input type="number" placeholder="Reached" value={logReached} onChange={e => setLogReached(e.target.value)} className="w-full bg-[#0A0806] text-sm text-center border border-[#1F1813] rounded p-2 outline-none focus:border-[#FF6B1A]" />
-                <input type="number" placeholder="Callbacks" value={logCallbacks} onChange={e => setLogCallbacks(e.target.value)} className="w-full bg-[#0A0806] text-sm text-center border border-[#1F1813] rounded p-2 outline-none focus:border-[#FF6B1A]" />
-                <input type="number" placeholder="Demos" value={logDemos} onChange={e => setLogDemos(e.target.value)} className="w-full bg-[#0A0806] text-sm text-center border border-[#1F1813] rounded p-2 outline-none focus:border-[#FF6B1A]" />
-                <button onClick={submitOutreach} disabled={logging} className="w-full md:w-auto bg-[#FF6B1A] text-[#0A0806] font-bold px-6 py-2 rounded disabled:opacity-50">Save</button>
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <input type="number" placeholder="Reached" value={logReached} onChange={e => setLogReached(e.target.value)} className="w-full bg-[#F7F4EC] text-lg font-bold text-center border-none rounded-xl p-4 outline-none focus:ring-2 focus:ring-[#FF6B1A]" />
+                <input type="number" placeholder="Callbacks" value={logCallbacks} onChange={e => setLogCallbacks(e.target.value)} className="w-full bg-[#F7F4EC] text-lg font-bold text-center border-none rounded-xl p-4 outline-none focus:ring-2 focus:ring-[#FF6B1A]" />
+                <input type="number" placeholder="Demos" value={logDemos} onChange={e => setLogDemos(e.target.value)} className="w-full bg-[#F7F4EC] text-lg font-bold text-center border-none rounded-xl p-4 outline-none focus:ring-2 focus:ring-[#FF6B1A]" />
+                <button onClick={submitOutreach} disabled={logging} className="accent-btn py-4 px-8 rounded-xl w-full md:w-auto disabled:opacity-50">Save</button>
               </div>
             ) : (
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex-1">
-                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2 border-b border-[#1F1813] pb-1">Today</p>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span className="text-[#7A6F65]">Reached</span> <span className="font-mono">{stats.today.reached}</span></div>
-                    <div className="flex justify-between"><span className="text-[#7A6F65]">Callback</span> <span className="font-mono text-[#FFB347]">{stats.today.callbacks} <span className="text-[10px]">({pct(stats.today.callbacks, stats.today.reached)})</span></span></div>
-                    <div className="flex justify-between"><span className="text-[#7A6F65]">Demo</span> <span className="font-mono text-[#00E5FF]">{stats.today.demos} <span className="text-[10px]">({pct(stats.today.demos, stats.today.reached)})</span></span></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="border-b md:border-b-0 md:border-r border-black/5 pb-6 md:pb-0 md:pr-8">
+                  <p className="text-sm text-[#8A8F98] font-sans uppercase tracking-widest font-bold mb-4">Today</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline"><span className="text-base text-[#8A8F98]">Reached</span> <span className="text-3xl font-serif">{stats.today.reached}</span></div>
+                    <div className="flex justify-between items-baseline"><span className="text-base text-[#8A8F98]">Callbacks</span> <span className="text-2xl font-serif text-[#FF6B1A]">{stats.today.callbacks} <span className="text-sm font-sans">({pct(stats.today.callbacks, stats.today.reached)})</span></span></div>
+                    <div className="flex justify-between items-baseline"><span className="text-base text-[#8A8F98]">Demos</span> <span className="text-2xl font-serif text-[#00D1FF]">{stats.today.demos} <span className="text-sm font-sans">({pct(stats.today.demos, stats.today.reached)})</span></span></div>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2 border-b border-[#1F1813] pb-1">This Week</p>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span className="text-[#7A6F65]">Reached</span> <span className="font-mono">{stats.week.reached}</span></div>
-                    <div className="flex justify-between"><span className="text-[#7A6F65]">Callback</span> <span className="font-mono text-[#FFB347]">{stats.week.callbacks} <span className="text-[10px]">({pct(stats.week.callbacks, stats.week.reached)})</span></span></div>
-                    <div className="flex justify-between"><span className="text-[#7A6F65]">Demo</span> <span className="font-mono text-[#00E5FF]">{stats.week.demos} <span className="text-[10px]">({pct(stats.week.demos, stats.week.reached)})</span></span></div>
+                <div className="border-b md:border-b-0 md:border-r border-black/5 pb-6 md:pb-0 md:pr-8">
+                  <p className="text-sm text-[#8A8F98] font-sans uppercase tracking-widest font-bold mb-4">This Week</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline"><span className="text-base text-[#8A8F98]">Reached</span> <span className="text-3xl font-serif">{stats.week.reached}</span></div>
+                    <div className="flex justify-between items-baseline"><span className="text-base text-[#8A8F98]">Callbacks</span> <span className="text-2xl font-serif text-[#FF6B1A]">{stats.week.callbacks} <span className="text-sm font-sans">({pct(stats.week.callbacks, stats.week.reached)})</span></span></div>
+                    <div className="flex justify-between items-baseline"><span className="text-base text-[#8A8F98]">Demos</span> <span className="text-2xl font-serif text-[#00D1FF]">{stats.week.demos} <span className="text-sm font-sans">({pct(stats.week.demos, stats.week.reached)})</span></span></div>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-xs text-[#7A6F65] font-mono uppercase mb-2 border-b border-[#1F1813] pb-1">This Month</p>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span className="text-[#7A6F65]">Reached</span> <span className="font-mono">{stats.month.reached}</span></div>
-                    <div className="flex justify-between"><span className="text-[#7A6F65]">Callback</span> <span className="font-mono text-[#FFB347]">{stats.month.callbacks} <span className="text-[10px]">({pct(stats.month.callbacks, stats.month.reached)})</span></span></div>
-                    <div className="flex justify-between"><span className="text-[#7A6F65]">Demo</span> <span className="font-mono text-[#00E5FF]">{stats.month.demos} <span className="text-[10px]">({pct(stats.month.demos, stats.month.reached)})</span></span></div>
+                <div>
+                  <p className="text-sm text-[#8A8F98] font-sans uppercase tracking-widest font-bold mb-4">This Month</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-baseline"><span className="text-base text-[#8A8F98]">Reached</span> <span className="text-3xl font-serif">{stats.month.reached}</span></div>
+                    <div className="flex justify-between items-baseline"><span className="text-base text-[#8A8F98]">Callbacks</span> <span className="text-2xl font-serif text-[#FF6B1A]">{stats.month.callbacks} <span className="text-sm font-sans">({pct(stats.month.callbacks, stats.month.reached)})</span></span></div>
+                    <div className="flex justify-between items-baseline"><span className="text-base text-[#8A8F98]">Demos</span> <span className="text-2xl font-serif text-[#00D1FF]">{stats.month.demos} <span className="text-sm font-sans">({pct(stats.month.demos, stats.month.reached)})</span></span></div>
                   </div>
                 </div>
               </div>
@@ -193,35 +199,35 @@ export default function LeadsPage() {
           </div>
         )}
 
-        {loading && <p className="text-sm text-[#7A6F65]">loading…</p>}
-        {!loading && leads.length === 0 && <p className="text-sm text-[#7A6F65]">No leads yet. Go to Inbox to add one.</p>}
+        {loading && <p className="text-lg text-[#8A8F98]">loading…</p>}
+        {!loading && leads.length === 0 && <p className="text-lg text-[#8A8F98]">No leads yet. Capture one from the Daily Brief.</p>}
 
-        <div className="space-y-10">
+        <div className="space-y-12">
           {sortedDays.map((dayNum) => (
             <div key={dayNum}>
-              <div className="flex items-center gap-4 mb-4">
-                <h2 className="text-xs text-[#FF6B1A] font-mono uppercase tracking-widest">
+              <div className="flex items-center gap-4 mb-6">
+                <h2 className="text-sm font-sans uppercase tracking-[0.2em] font-bold text-[#FF6B1A]">
                   {dayNum > 0 ? `Day ${dayNum}` : `Pre-Hearth`}
                 </h2>
-                <div className="h-[1px] flex-1 bg-[#1F1813]"></div>
+                <div className="h-[1px] flex-1 bg-black/5"></div>
               </div>
-              <ul className="space-y-3">
+              <ul className="space-y-4">
                 {grouped[dayNum].map((lead) => (
-                  <li key={lead.id} className="border border-[#1F1813] rounded-lg bg-[#14100C] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <li key={lead.id} className="editorial-card rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                      <p className="text-sm font-medium">{lead.data.name}</p>
-                      <p className="text-xs text-[#7A6F65] mt-1">
-                        {lead.data.phone && <a href={`tel:${lead.data.phone}`} className="hover:text-[#FF6B1A]">{lead.data.phone}</a>}
+                      <p className="text-2xl font-serif text-[#1A1A1A]">{lead.data.name}</p>
+                      <p className="text-base text-[#8A8F98] mt-1 font-sans">
+                        {lead.data.phone && <a href={`tel:${lead.data.phone}`} className="hover:text-[#FF6B1A] transition-colors">{lead.data.phone}</a>}
                         {lead.data.address && ` · ${lead.data.address}`}
                       </p>
-                      {lead.data.note && <p className="text-xs text-[#FFB347] mt-1">{lead.data.note}</p>}
+                      {lead.data.note && <p className="text-sm text-[#FF6B1A] mt-2 font-sans font-medium">{lead.data.note}</p>}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => openEditModal(lead)} className="text-xs text-[#7A6F65] hover:text-[#FF6B1A] transition-colors">Edit</button>
+                    <div className="flex items-center gap-4">
+                      <button onClick={() => openEditModal(lead)} className="text-sm font-bold text-[#8A8F98] hover:text-[#FF6B1A] transition-colors">Edit</button>
                       <select
                         value={lead.data.status}
                         onChange={(e) => handleStatus(lead.id, e.target.value as LeadData['status'])}
-                        className={`bg-[#0A0806] text-xs rounded px-2 py-1 outline-none transition-all duration-200 focus:ring-2 ring-opacity-50 shadow-[0_0_10px_rgba(0,0,0,0)] ${statusColors[lead.data.status]}`}
+                        className={`bg-transparent text-sm font-bold rounded-full px-4 py-2 outline-none border-2 transition-all duration-200 ${statusColors[lead.data.status]}`}
                       >
                         <option value="new">New</option>
                         <option value="contacted">Contacted</option>
@@ -231,7 +237,7 @@ export default function LeadsPage() {
                       </select>
                       <button
                         onClick={() => handleDelete(lead.id, lead.data.name)}
-                        className="text-[#8B4A2A] hover:text-[#ff4d4d] transition-colors px-2 text-lg leading-none"
+                        className="text-[#8A8F98] hover:text-[#ff4d4d] transition-colors px-2 text-2xl leading-none font-light"
                         title="Delete lead"
                       >
                         ×
@@ -247,20 +253,20 @@ export default function LeadsPage() {
 
       {/* EDIT MODAL */}
       {editingLead && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setEditingLead(null)}>
-          <div className="bg-[#14100C] border border-[#1F1813] rounded-xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6">
-              <h2 className="text-lg font-medium mb-4">Edit Lead</h2>
-              <div className="space-y-3">
-                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]" />
-                <input type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone" className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]" />
-                <input type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Address" className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]" />
-                <input type="text" value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="Note" className="w-full bg-[#0A0806] text-[#F5EFE7] text-sm border border-[#1F1813] rounded-md px-3 py-2.5 outline-none focus:border-[#8B4A2A]" />
+        <div className="fixed inset-0 z-50 bg-[#F7F4EC]/80 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setEditingLead(null)}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-8">
+              <h2 className="text-3xl font-serif mb-6 text-[#1A1A1A]">Edit Lead</h2>
+              <div className="space-y-4">
+                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Name" className="w-full bg-[#F7F4EC] text-lg text-[#1A1A1A] border-none rounded-xl px-5 py-3 outline-none focus:ring-2 focus:ring-[#FF6B1A]" />
+                <input type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Phone" className="w-full bg-[#F7F4EC] text-lg text-[#1A1A1A] border-none rounded-xl px-5 py-3 outline-none focus:ring-2 focus:ring-[#FF6B1A]" />
+                <input type="text" value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="Address" className="w-full bg-[#F7F4EC] text-lg text-[#1A1A1A] border-none rounded-xl px-5 py-3 outline-none focus:ring-2 focus:ring-[#FF6B1A]" />
+                <input type="text" value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="Note" className="w-full bg-[#F7F4EC] text-lg text-[#1A1A1A] border-none rounded-xl px-5 py-3 outline-none focus:ring-2 focus:ring-[#FF6B1A]" />
               </div>
             </div>
-            <div className="flex border-t border-[#1F1813]">
-              <button onClick={() => setEditingLead(null)} className="flex-1 py-3 text-sm font-medium text-[#7A6F65] hover:text-[#F5EFE7] bg-[#0A0806] transition-colors">Cancel</button>
-              <button onClick={saveEdit} disabled={savingEdit || !editName.trim()} className="flex-1 py-3 text-sm font-medium text-[#FF6B1A] bg-[#14100C] hover:bg-[#1A140F] border-l border-[#1F1813] transition-colors">Save</button>
+            <div className="flex border-t border-black/5">
+              <button onClick={() => setEditingLead(null)} className="flex-1 py-4 text-base font-bold text-[#8A8F98] hover:text-[#1A1A1A] transition-colors">Cancel</button>
+              <button onClick={saveEdit} disabled={savingEdit || !editName.trim()} className="flex-1 py-4 text-base font-bold text-[#FF6B1A] bg-[#F7F4EC]/30 hover:bg-[#F7F4EC] transition-colors">Save</button>
             </div>
           </div>
         </div>
