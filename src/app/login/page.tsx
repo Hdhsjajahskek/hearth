@@ -13,7 +13,8 @@ function LoginInner() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        // Hardcode the exact Vercel callback URL
+        redirectTo: 'https://hearth-xngm.vercel.app/auth/callback',
       },
     })
   }
